@@ -1,0 +1,13 @@
+#!/bin/bash
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+[ -z $1 ] && abort "Usage: `basename $0` [list of filenames for new scripts]"
+while [ $# -gt 0 ];do
+    NEWSCRIPT=$1
+    if [ ! -f $NEWSCRIPT ];then
+        echo '#!/bin/bash' > $NEWSCRIPT
+        chmod +x $NEWSCRIPT
+    fi
+    ${EDITOR:-vi} $NEWSCRIPT 
+    shift
+done
