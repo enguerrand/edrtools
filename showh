@@ -1,0 +1,13 @@
+#!/bin/bash
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+HEADER=$1
+PG=${PAGER:=less}
+[ -z $HEADER ] && abort "Usage: $(basename $0) [header]"
+for LOCATION in \
+    /usr/include/ \
+    /usr/local/include/ 
+do
+    [ -f $LOCATION/$HEADER ] && exec $PG $LOCATION/$HEADER;
+done
+abort "Header $HEADER not found!"
