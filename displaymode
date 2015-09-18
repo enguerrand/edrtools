@@ -1,0 +1,49 @@
+#!/bin/bash
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+
+function list_devices(){
+    xrandr | grep connected | cut -d' ' -f 1
+}
+function get_device(){
+    index=$1
+    list_devices | head -n $index | tail -n 1
+}
+function print_usage {
+	echo "Usage: `basename $0` <mode>";
+	echo "where";
+	echo "	mode = (single|dual|left|right)";
+}
+if [ "x$1" == "x-h" ]; then
+    echo "$(basename $0) finds the first two displays from xrandr output and sets them according to the MODE parameter."
+    echo ""
+    print_usage
+    exit 0
+fi
+MODE=$1
+[ -z $MODE ] && abort $(print_usage)
+PRIMARY=$(get_device 1)
+SECONDARY=$(get_device 2)
+echo "Primary display device: $PRIMARY"
+echo "Secondary display device: $SECONDARY"
+
+if [ $MODE == "single" ];then
+	xrandr  --output $PRIMARY --auto 
+elif [ "$MODE" == "left" ]; then
+	xrandr  --output $PRIMARY --auto --output $SECONDARY --auto  --left-of $PRIMARY;
+elif [ "$MODE" == "right" ]; then
+	xrandr  --output $PRIMARY --auto --output $SECONDARY --auto  --right-of $PRIMARY;
+elif [ "$MODE" == "dual" ]; then
+	xrandr  --output $PRIMARY --auto --output $SECONDARY --auto  --same-as $PRIMARY;
+else
+	quit;
+fi
+
+# The below block tries to do "smart" things that I found to be helpful
+# You may want to remove it / comment it out
+if [ $? -eq '0' ]; then
+	# reload fluxbox configuration
+    [ -n $(pgrep fluxbox) ] && fluxbox-remote "Restart"
+	# restart conky
+    [ -n $(pgrep conky) ] && killall -SIGUSR1 conky
+fi
