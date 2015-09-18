@@ -1,0 +1,12 @@
+#!/bin/bash
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+function print_usage(){
+    echo "Usage: $(basename $0) <file>"
+}
+if [ "x$1" == "x-h" ]; then
+    printf "Takes the given file and indents it by one space so you can conveniently paste it to a mediawiki form as code\n\n"
+    print_usage
+    exit 0
+fi
+sed -e 's/^/ /g' $1 | ${PAGER:-less}
