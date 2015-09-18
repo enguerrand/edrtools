@@ -10,13 +10,10 @@ function get_device(){
     list_devices | head -n $index | tail -n 1
 }
 function print_usage {
-	echo "Usage: `basename $0` <mode>";
-	echo "where";
-	echo "	mode = (single|dual|left|right)";
+    printf "Usage: `basename $0` <mode>\nwhere:\n\tmode = (single|dual|left|right)\n";
 }
 if [ "x$1" == "x-h" ]; then
-    echo "$(basename $0) finds the first two displays from xrandr output and sets them according to the MODE parameter."
-    echo ""
+    printf "Finds the first two displays from xrandr output and sets them according to the MODE parameter.\n\n"
     print_usage
     exit 0
 fi

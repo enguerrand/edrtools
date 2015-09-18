@@ -1,10 +1,9 @@
 #!/bin/bash
 function print_usage(){
-    echo "Usage: $(basename $0) [header]"
+    echo "Usage: $(basename $0) <header>"
 }
 if [ "x$1" == "x-h" ]; then
-    echo "$(basename $0) tries to find the specified header file on your system and pipes it to the pager defined in \$PAGER or less if \$PAGER is empty."
-    echo ""
+    printf "Tries to find the specified header file on your system and pipes it to the pager defined in \$PAGER or less if \$PAGER is empty.\n\n"
     print_usage
     exit 0
 fi
