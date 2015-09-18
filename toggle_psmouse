@@ -1,0 +1,24 @@
+#!/bin/bash
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+[ $UID -ne 0 ] && abort "This script must be run as root!"
+function print_usage(){
+    echo "Usage: $(basename $0) [on|off]"
+}
+if [ "x$1" == "x-h" ]; then
+    printf "Sets the touchpad activation state to (on|off) by (un)loading the psmouse kernel module... or toggles if no argument is given. (Requires root))\n\n"
+    print_usage
+    exit 0
+fi
+CURRENT_STATE="off";
+lsmod | grep -qs psmouse && CURRENT_STATE="on";
+NEWSTATE=${1:-"null"}
+if [ "x$NEW_STATE" == "xon" ]; then
+    modprobe psmouse;
+elif [ "x$NEW_STATE" == "xoff" ]; then
+    modprobe -r psmouse;
+elif [ "x$CURRENT_STATE" == "xon" ]; then
+	modprobe -r psmouse;
+elif [ "x$CURRENT_STATE" == "xoff" ]; then
+	modprobe psmouse;
+fi
