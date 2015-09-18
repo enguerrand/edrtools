@@ -2,4 +2,4 @@
 BASEDIR=$(dirname $0)
 source $BASEDIR/inc_msg.sh
 [ $# -ne 1 ] && abort "Usage: `basename $0` [/path/to/file]"
-less $(which $1)
+${PAGER:-less} $(which $1)
