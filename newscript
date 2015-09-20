@@ -1,11 +1,49 @@
 #!/bin/bash
 BASEDIR=$(dirname $0)
 source $BASEDIR/inc_msg.sh
-[ -z $1 ] && abort "Usage: `basename $0` [list of filenames for new scripts]"
+function print_usage() {
+cat << EOF
+Usage: $(basename $0) [OPTIONS] [list of filenames for new scripts]
+Valid options are:
+    -b 
+        Initialize edrtools BASEDIR variable
+    -m
+        Include message printing functions
+    -u
+        Include user input multiple choice function
+EOF
+}
+
+if [ "x$1" == "x-h" ];then
+    print_usage
+    exit 0
+fi
+
 while [ $# -gt 0 ];do
+    case "$1" in
+        '-b')
+            INC_BASEDIR="y"
+            shift
+            continue
+            ;;
+        '-m')
+            INC_MSG="y"
+            shift
+            continue
+            ;;
+        '-u')
+            INC_USER_INPUT="y"
+            shift
+            continue
+            ;;
+    esac
     NEWSCRIPT=$1
+    [ -z $NEWSCRIPT ] && exit
     if [ ! -f $NEWSCRIPT ];then
         echo '#!/bin/bash' > $NEWSCRIPT
+        [ "x$INC_BASEDIR" == "xy" ] && echo "BASEDIR=\$(dirname \$0)" >> $NEWSCRIPT
+        [ "x$INC_MSG" == "xy" ] && echo "source \$BASEDIR/inc_msg.sh" >> $NEWSCRIPT
+        [ "x$INC_USER_INPUT" == "xy" ] && echo "source \$BASEDIR/inc_user_input.sh" >> $NEWSCRIPT
         chmod +x $NEWSCRIPT
     fi
     ${EDITOR:-vi} $NEWSCRIPT 
