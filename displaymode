@@ -27,11 +27,11 @@ echo "Secondary display device: $SECONDARY"
 if [ $MODE == "single" ];then
 	xrandr  --output $PRIMARY --auto 
 elif [ "$MODE" == "left" ]; then
-	xrandr  --output $PRIMARY --auto --output $SECONDARY --auto  --left-of $PRIMARY;
+	xrandr  --output $SECONDARY --auto --output $PRIMARY --auto  --right-of $SECONDARY;
 elif [ "$MODE" == "right" ]; then
-	xrandr  --output $PRIMARY --auto --output $SECONDARY --auto  --right-of $PRIMARY;
+	xrandr  --output $SECONDARY --auto --output $PRIMARY --auto  --left-of $SECONDARY;
 elif [ "$MODE" == "dual" ]; then
-	xrandr  --output $PRIMARY --auto --output $SECONDARY --auto  --same-as $PRIMARY;
+	xrandr  --output $SECONDARY --auto --output $PRIMARY --auto  --same-as $SECONDARY;
 else
 	quit;
 fi
@@ -40,7 +40,7 @@ fi
 # You may want to remove it / comment it out
 if [ $? -eq '0' ]; then
 	# reload fluxbox configuration
-    [ -n $(pgrep fluxbox) ] && fluxbox-remote "Restart"
+    [ -n "$(pgrep fluxbox)" ] && fluxbox-remote > /dev/null 2>&1 && fluxbox-remote "Restart"
 	# restart conky
-    [ -n $(pgrep conky) ] && killall -SIGUSR1 conky
+    [ -n "$(pgrep conky)" ] && killall -SIGUSR1 conky
 fi
