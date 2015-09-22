@@ -26,6 +26,11 @@ while [ $# -gt 0 ];do
             shift
             continue
             ;;
+        '-l')
+            INC_LOCK="y"
+            shift
+            continue
+            ;;
         '-m')
             INC_MSG="y"
             shift
@@ -42,6 +47,7 @@ while [ $# -gt 0 ];do
     if [ ! -f $NEWSCRIPT ];then
         echo '#!/bin/bash' > $NEWSCRIPT
         [ "x$INC_BASEDIR" == "xy" ] && echo "BASEDIR=\$(dirname \$0)" >> $NEWSCRIPT
+        [ "x$INC_LOCK" == "xy" ] && echo "source \$BASEDIR/inc_lock.sh" >> $NEWSCRIPT
         [ "x$INC_MSG" == "xy" ] && echo "source \$BASEDIR/inc_msg.sh" >> $NEWSCRIPT
         [ "x$INC_USER_INPUT" == "xy" ] && echo "source \$BASEDIR/inc_user_input.sh" >> $NEWSCRIPT
         chmod +x $NEWSCRIPT
