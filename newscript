@@ -7,6 +7,8 @@ Usage: $(basename $0) [OPTIONS] [list of filenames for new scripts]
 Valid options are:
     -b 
         Initialize edrtools BASEDIR variable
+    -l
+        Include lock file mechanism functions
     -m
         Include message printing functions
     -u
