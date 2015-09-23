@@ -11,11 +11,21 @@ BASEDIR=$(dirname $0)
 source $BASEDIR/inc_msg.sh
 HEADER=$1
 [ -z $HEADER ] && abort $(print_usage)
-for LOCATION in \
-    /usr/include/ \
-    /usr/local/include/ \
-    .
+[[ "$HEADER" =~ .*\.h$ ]] || HEADER="${HEADER}.h"
+for PREFIX in \
+    "" \
+    "sys/" \
+    "bits/" \
+    "asm/" \
+    "linux/" 
 do
-    [ -f $LOCATION/$HEADER ] && exec ${PAGER:-less} $LOCATION/$HEADER;
+    for LOCATION in \
+        "/usr/include" \
+        "/usr/local/include" \
+        "."
+    do
+        [ -f ${LOCATION}/${PREFIX}${HEADER} ] && exec ${PAGER:-less} ${LOCATION}/${PREFIX}${HEADER};
+    done
 done
+
 abort "Header $HEADER not found!"
