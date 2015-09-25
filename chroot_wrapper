@@ -1,0 +1,42 @@
+#!/bin/bash
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+function print_usage {
+    printf "Usage: $(basename $0) <dev>\n";
+}
+
+if [ "x$1" == "x-h" ]; then
+    printf "Creates a tempdir and chroots into it.\n\n"
+    print_usage
+    exit 0
+fi
+TARGET_DEV=$1
+[ -z $TARGET_DEV ] && abort $(print_usage)
+TARGET=/tmp/chroot.$BASHPID
+mkdir -p $TARGET
+mount $TARGET_DEV $TARGET
+for DIR in \
+    "/dev" \
+    "/dev/pts" \
+    "/proc" \
+    "/sys" 
+do
+    mkdir -p ${TARGET}${DIR}
+    mount --bind ${DIR} ${TARGET}${DIR}
+done
+read -p "Copy resolv.conf to target system? [y/N]" CPRC
+if [ "x${CPRC}" == "xy" ];then
+    cp /etc/resolv.conf $TARGET/etc/resolv.conf
+fi
+chroot $TARGET /bin/bash
+umount $TARGET /dev/pts
+for DIR in \
+    "/dev" \
+    "/proc" \
+    "/sys" 
+do
+    umount ${TARGET}${DIR}
+    rmdir  ${TARGET}${DIR}
+done
+umount $TARGET
+rmdir $TARGET
