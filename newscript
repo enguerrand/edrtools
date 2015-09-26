@@ -63,6 +63,10 @@ while [ $# -gt 0 ];do
 function print_usage(){
     echo "Usage: $(basename $0)"
 }
+if [ "x$1" == "x-h" ];then
+    print_usage
+    exit 0
+fi
 EOF
         chmod +x $NEWSCRIPT
     fi
