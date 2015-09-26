@@ -1,0 +1,13 @@
+#!/bin/bash
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+function print_usage(){
+    echo "Usage: $(basename $0) <infile.c>"
+}
+if [ "x$1" == "x-h" ];then
+    print_usage
+    exit 0
+fi
+INFILE=$1
+[ -z "$INFILE" ] && abort "Input argument missing!"
+gcc -o ${INFILE%.*}  $INFILE && ./${INFILE%.*}
