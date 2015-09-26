@@ -13,6 +13,8 @@ Valid options are:
         Include message printing functions
     -u
         Include user input multiple choice function
+    -p
+        Adds print_usage function
 EOF
 }
 
@@ -43,6 +45,11 @@ while [ $# -gt 0 ];do
             shift
             continue
             ;;
+        '-p')
+            INC_PRINT_USAGE="y"
+            shift
+            continue
+            ;;
     esac
     NEWSCRIPT=$1
     [ -z $NEWSCRIPT ] && exit
@@ -52,6 +59,11 @@ while [ $# -gt 0 ];do
         [ "x$INC_LOCK" == "xy" ] && echo "source \$BASEDIR/inc_lock.sh" >> $NEWSCRIPT
         [ "x$INC_MSG" == "xy" ] && echo "source \$BASEDIR/inc_msg.sh" >> $NEWSCRIPT
         [ "x$INC_USER_INPUT" == "xy" ] && echo "source \$BASEDIR/inc_user_input.sh" >> $NEWSCRIPT
+        [ "x$INC_PRINT_USAGE" == "xy" ] && cat >> $NEWSCRIPT << "EOF"
+function print_usage(){
+    echo "Usage: $(basename $0)"
+}
+EOF
         chmod +x $NEWSCRIPT
     fi
     ${EDITOR:-vi} $NEWSCRIPT 
