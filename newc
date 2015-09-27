@@ -1,0 +1,93 @@
+#!/bin/bash
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+
+function print_usage(){
+cat << EOF
+$(basename $0) [OPTIONS]  <filename.c>
+
+Valid options are:
+
+-sl
+    include stdlib.h
+-io
+    include stdio.h
+-st
+    include string.h
+-sp
+    include sys/param.h
+-oh
+    include own header
+-M
+    include main
+EOF
+}
+if [ "x$1" == "x-h" ];then
+    print_usage
+    exit 0
+fi
+while [ $# -gt 0 ];do
+    case "$1" in
+        '-sl')
+            INC_STDLIB="y"
+            shift
+            continue
+            ;;
+        '-io')
+            INC_STDIO="y"
+            shift
+            continue
+            ;;
+        '-st')
+            INC_STRING="y"
+            shift
+            continue
+            ;;
+        '-sp')
+            INC_SYS_PARAM="y"
+            shift
+            continue
+            ;;
+        '-oh')
+            INC_OWN_HEADER="y"
+            shift
+            continue
+            ;;
+        '-M')
+            INC_MAIN="y"
+            shift
+            continue
+            ;;
+           *)
+            if [ -n "$C_FILE" ];then
+                print_error "Only one filename allowed!"
+                print_usage
+                exit -1
+            fi
+            C_FILE=$1
+            shift
+            continue
+            ;;
+    esac
+done
+if [ -z "$C_FILE" ];then 
+    print_error "Only one filename allowed!"
+    print_usage
+    exit -1
+fi
+[ -f "$C_FILE" ] && exec ${EDITOR:-vi} $C_FILE
+echo "/* $C_FILE */" > $C_FILE
+[ "x$INC_STDLIB" == "xy" ] && echo "#include <stdlib.h>" >> $C_FILE
+[ "x$INC_STDIO" == "xy" ] && echo "#include <stdio.h>" >> $C_FILE
+[ "x$INC_STRING" == "xy" ] && echo "#include <string.h>" >> $C_FILE
+[ "x$INC_SYS_PARAM" == "xy" ] && echo "#include <sys/param.h>" >> $C_FILE
+[ "x$INC_OWN_HEADER" == "xy" ] && echo "#include \"${C_FILE%.*}.h\"" >> $C_FILE
+if [ "x$INC_MAIN" == "xy" ];then
+    cat >> $C_FILE << EOF
+
+int main (int argc, char *argv[]) {
+}
+EOF
+fi
+${EDITOR:-vi} $C_FILE
+
