@@ -1,0 +1,45 @@
+#!/bin/bash
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+
+function print_usage(){
+cat << EOF
+$(basename $0)  <filename.c>
+
+Creates a header (.h) file from a c-source (.c) file.
+This is happening based on the (somewhat bold) guess that
+all non-indented code except for some special cases
+belongs into the header.
+So this is just a base to start from, intended for further
+manual editing.
+EOF
+}
+if [ "x$1" == "x-h" ];then
+    print_usage
+    exit 0
+fi
+C_FILE=$1
+[ -z "$C_FILE" ] && abort "Argument missing!" 
+[ ! -f "$C_FILE" ] && abort "File $C_FILE not found!"
+H_FILE="${C_FILE%.*}.h"
+[ -f "$H_FILE" ] && exec ${EDITOR:-vi} $H_FILE
+echo "/* $H_FILE */" > $H_FILE
+cat "$C_FILE" | \
+    # Convert source into prototypes. 
+    # This is a work in progress and probably quiet incomplete
+    #
+    # remove indented code
+    egrep -v "^[ \t] " | \
+    # remove curly brackets
+    tr -d "[{}]" | \
+    # remove blank lines
+    egrep -v "^[\t ]*$" | \
+    # remove pure comment lines
+    egrep -v "^[ \t]*/" | \
+    # remove include directives
+    grep -v "#include" | \
+    # add semicolons at the end of functions
+    sed -e "s/)[\t ]*$/);/g" \
+    >> $H_FILE
+${EDITOR:-vi} $H_FILE
+
