@@ -1,0 +1,9 @@
+#!/bin/bash
+cat << EOF
+File content...    | r  w  a  r+ w+ a+ |
+---------------------------------------|
+is readable        | x        x  x  x  |
+can be written to  |    x  x  x  x  x  |
+can be appended to |       x        x  |
+will be lost       |    x        x     |
+EOF
