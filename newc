@@ -71,7 +71,7 @@ while [ $# -gt 0 ];do
     esac
 done
 if [ -z "$C_FILE" ];then 
-    print_error "Only one filename allowed!"
+    print_error "No filename given!"
     print_usage
     exit -1
 fi
