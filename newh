@@ -4,7 +4,7 @@ source $BASEDIR/inc_msg.sh
 
 function print_usage(){
 cat << EOF
-$(basename $0)  <filename.c>
+$(basename $0) [OPTIONS] <filename.c>
 
 Creates a header (.h) file from a c-source (.c) file.
 This is happening based on the (somewhat bold) guess that
@@ -12,17 +12,45 @@ all non-indented code except for some special cases
 belongs into the header.
 So this is just a base to start from, intended for further
 manual editing.
+
+Valid options are:
+
+-f
+    overwrite pre-existing file, if any
+
 EOF
 }
 if [ "x$1" == "x-h" ];then
     print_usage
     exit 0
 fi
-C_FILE=$1
-[ -z "$C_FILE" ] && abort "Argument missing!" 
+while [ $# -gt 0 ];do
+    case "$1" in
+        '-f')
+            FORCE="y"
+            shift
+            continue
+            ;;
+           *)
+            if [ -n "$C_FILE" ];then
+                print_error "Only one filename allowed!"
+                print_usage
+                exit -1
+            fi
+            C_FILE=$1
+            shift
+            continue
+            ;;
+    esac
+done
+if [ -z "$C_FILE" ];then 
+    print_error "No filename given!"
+    print_usage
+    exit -1
+fi
 [ ! -f "$C_FILE" ] && abort "File $C_FILE not found!"
 H_FILE="${C_FILE%.*}.h"
-[ -f "$H_FILE" ] && exec ${EDITOR:-vi} $H_FILE
+[ -f "$H_FILE" ] && [ "xy" != "x$FORCE" ] && abort "File $H_FILE already exists! Use -f option to overwrite."
 echo "/* $H_FILE */" > $H_FILE
 cat "$C_FILE" | \
     # Convert source into prototypes. 
