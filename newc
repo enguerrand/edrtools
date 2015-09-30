@@ -8,14 +8,16 @@ $(basename $0) [OPTIONS]  <filename.c>
 
 Valid options are:
 
--sl
-    include stdlib.h
 -io
     include stdio.h
--st
-    include string.h
+-sl
+    include stdlib.h
 -sp
     include sys/param.h
+-st
+    include string.h
+-ma
+    include math.h
 -oh
     include own header
 -M
@@ -45,6 +47,11 @@ while [ $# -gt 0 ];do
             ;;
         '-sp')
             INC_SYS_PARAM="y"
+            shift
+            continue
+            ;;
+        '-ma')
+            INC_MATH="y"
             shift
             continue
             ;;
@@ -81,6 +88,7 @@ echo "/* $C_FILE */" > $C_FILE
 [ "x$INC_STDIO" == "xy" ] && echo "#include <stdio.h>" >> $C_FILE
 [ "x$INC_STRING" == "xy" ] && echo "#include <string.h>" >> $C_FILE
 [ "x$INC_SYS_PARAM" == "xy" ] && echo "#include <sys/param.h>" >> $C_FILE
+[ "x$INC_MATH" == "xy" ] && echo "#include <math.h>" >> $C_FILE
 [ "x$INC_OWN_HEADER" == "xy" ] && echo "#include \"${C_FILE%.*}.h\"" >> $C_FILE
 if [ "x$INC_MAIN" == "xy" ];then
     cat >> $C_FILE << EOF
