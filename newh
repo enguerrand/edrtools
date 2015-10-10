@@ -54,20 +54,20 @@ H_FILE="${C_FILE%.*}.h"
 echo "/* $H_FILE */" > $H_FILE
 cat "$C_FILE" | \
     # Convert source into prototypes. 
-    # This is a work in progress and probably quiet incomplete
+    # This is a work in progress and probably quite incomplete
     #
     # remove indented code
-    egrep -v "^[ \t] " | \
+    egrep -v "^\s" | \
     # remove curly brackets
     tr -d "[{}]" | \
-    # remove blank lines
-    egrep -v "^[\t ]*$" | \
+    # remove empty lines
+    egrep -v "^$" | \
     # remove pure comment lines
-    egrep -v "^[ \t]*/" | \
+    egrep -v "^//" | \
     # remove include directives
     grep -v "#include" | \
     # add semicolons at the end of functions
-    sed -e "s/)[\t ]*$/);/g" \
+    sed -e "s/)\s*$/);/g" \
     >> $H_FILE
 ${EDITOR:-vi} $H_FILE
 
