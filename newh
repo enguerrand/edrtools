@@ -56,16 +56,20 @@ cat "$C_FILE" | \
     # Convert source into prototypes. 
     # This is a work in progress and probably quite incomplete
     #
+    # remove block comments (will NOT catch everything!)
+    awk -vRS='*/' '{ gsub(/\/\*.*/,"")}1' | \
     # remove indented code
     egrep -v "^\s" | \
     # remove curly brackets
     tr -d "[{}]" | \
     # remove empty lines
     egrep -v "^$" | \
-    # remove pure comment lines
+    # remove pure inline comment lines
     egrep -v "^//" | \
     # remove include directives
     grep -v "#include" | \
+    # remove empty lines
+    egrep -v "^$" | \
     # add semicolons where needed
     sed -e "s/\s*$/;/g" -e "s/\s*;\s*;/;/g" \
     >> $H_FILE
