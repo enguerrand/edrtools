@@ -66,8 +66,8 @@ cat "$C_FILE" | \
     egrep -v "^//" | \
     # remove include directives
     grep -v "#include" | \
-    # add semicolons at the end of functions
-    sed -e "s/)\s*$/);/g" \
+    # add semicolons where needed
+    sed -e "s/\s*$/;/g" -e "s/\s*;\s*;/;/g" \
     >> $H_FILE
 ${EDITOR:-vi} $H_FILE
 
