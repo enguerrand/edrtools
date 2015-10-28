@@ -21,6 +21,7 @@ for PREFIX in \
 do
     for LOCATION in \
         "/usr/include" \
+        "/usr/include/mysql" \
         "/usr/local/include" \
         "."
     do
