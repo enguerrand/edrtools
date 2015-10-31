@@ -1,0 +1,15 @@
+#!/bin/bash
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+function print_usage(){
+    echo "Downloads a website recursively to make it available for offline reading"
+    echo "Usage: $(basename $0) <URL>"
+}
+if [ "x$1" == "x-h" ];then
+    print_usage
+    exit 0
+fi
+wget --version > /dev/null 2>&1 || abort "This tool requires wget. Please install that first."
+URL=$1
+[ -z "$URL" ] && abort "Parameter \"URL\" missing!"
+wget --mirror --convert-links --adjust-extension --page-requisites --no-parent $URL
