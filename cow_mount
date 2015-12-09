@@ -1,0 +1,50 @@
+#! /bin/bash
+#
+# Except for some reformatting and error handling this script was mainly copied from an example I received 
+# at the Aachener Linux User Group.
+#
+# TODO Restructure and make more consistent with other edrtools scripts.
+#
+set -e
+
+ORIGIN="$1"
+DM_NAME="$2"
+
+if [ -z "$ORIGIN" -o -z "$DM_NAME" ] ; then
+	echo "usage: $0 /dev/original dmname"
+	echo "or:    $0 -d dmname"
+	exit 1
+fi
+
+if [ "$ORIGIN" = "-d" -a -n "$DM_NAME" ] ; then
+	EXDEV="/dev/loop$(dmsetup table "$DM_NAME" | grep snapshot | cut -d " " -f 5 | cut -d ":" -f 2)"
+	dmsetup remove "$DM_NAME"
+	losetup -d "$EXDEV"
+	exit 0
+fi
+
+# If the source is not a block device mount it to a loop device and use that as the new source
+if [ -b "$ORIGIN" ] ; then
+	ORIGINBLK="$ORIGIN"
+else
+	ORIGINBLK=$(losetup -f -r --show $ORIGIN) # TODO Cleanup
+fi
+
+# Create a temporary file to receive the write operations instead of the mounted file system
+OVERLAY_FILE="$(mktemp --tmpdir dmtempcow.XXXXXXXXXX)"
+echo "Using $OVERLAY_FILE as temporary overlay file."
+dd if=/dev/zero bs=1M count=0 seek=400 of="$OVERLAY_FILE"
+
+LOOP_DEVICE=$(losetup -f --show $OVERLAY_FILE)
+SECTOR_COUNT=$(blockdev --getsz $ORIGINBLK)
+# dmsetup handles stdin as if a table file had been supplied as an argument
+#
+# Syntax for table file entries in general:
+#   logical_start_sector num_sectors target_type target_args
+#
+# More specifically, for snapshots:
+#   <logical_start_sector> <num_sectors> snapshot <origin> <COW device> <persistent?> <chunksize>
+#   <persistent?> is P (Persistent) or N (Not persistent - will not survive after reboot)
+#   
+echo "0 $SECTOR_COUNT snapshot $ORIGINBLK $LOOP_DEVICE p 4" | dmsetup create "$DM_NAME"
+
