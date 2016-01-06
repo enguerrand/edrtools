@@ -3,17 +3,23 @@
 # Except for some reformatting and error handling this script was mainly copied from an example I received 
 # at the Aachener Linux User Group.
 #
-# TODO Restructure and make more consistent with other edrtools scripts.
-#
 set -e
+function print_usage(){
+    echo "Usage: $(basename $0) /dev/original dmname"
+    echo "or:    $(basename $0) -d dmname"
+}
+if [ "x$1" == "x-h" ]; then
+    printf "Mounts a directory or block device in copy-on-write mode.\n\n"
+    print_usage
+    exit 0
+fi
 
 ORIGIN="$1"
 DM_NAME="$2"
 
 if [ -z "$ORIGIN" -o -z "$DM_NAME" ] ; then
-	echo "usage: $0 /dev/original dmname"
-	echo "or:    $0 -d dmname"
-	exit 1
+    print_usage
+    exit -1
 fi
 
 if [ "$ORIGIN" = "-d" -a -n "$DM_NAME" ] ; then
