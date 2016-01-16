@@ -1,0 +1,262 @@
+#!/bin/bash
+#
+# General config
+#
+# The editor that should be used to edit files
+# If unset, the content of the EDITOR variable is used.
+# If that is also unset, vi is used
+CTI_EDITOR=vim
+#
+# The tool to show conflicts. 
+# If unset, diff is used. If that is not available,
+# differences are not shown.
+CTI_DIFFTOOL=diff
+#
+# The tool to resolve conflicts.
+# If unset, vimdiff is used. If that is not available,
+# merging is not suggested
+CTI_MERGETOOL=vimdiff
+#
+# Target directory. 
+BACKUP_DIR=/srv/config/
+#
+# Delay in seconds between a printed message and opening the
+# file in an editor
+MSG_DELAY=1.0
+#
+#
+# Include other files
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+source $BASEDIR/inc_user_input.sh
+#
+# Check toolchain
+[ -x /usr/bin/${CTI_DIFFTOOL:=diff} ] || CTI_DIFFTOOL=no_diff
+#
+[ -x /usr/bin/${CTI_MERGETOOL:=vimdiff} ] || CTI_DIFFTOOL=no_merge
+#
+
+function print_usage(){
+echo "Usage: $(basename $0) [<OPTIONS>] <MODE> <FILE>"
+cat << EOF
+
+Modes:
+    add
+        Only add the specified file to the backup without modifying it
+
+    edit
+        Edit the specifed file and start tracking it
+
+    check
+        Only check the current status of the specified file
+
+    restore
+        Restore the file from the backup
+
+Options:
+    -d: debug
+        Enable debug mode
+
+    -h: help
+        Prints this help text
+EOF
+}
+if [ "x$1" == "x-h" ];then
+    print_usage
+    exit 0
+fi
+
+function no_diff () {
+	echo "No difftool available"
+}
+
+function no_merge () {
+	echo "No mergetool available"
+}
+
+function checksum (){
+    local file=$1
+    md5sum $file | cut -d' ' -f 1
+}
+
+function fullpath () {
+    local file=$1
+    if [ -d "$file" ];then
+        cd $file
+        pwd
+    else
+        local filename=$(basename "$file")
+        local dir=${file%/*}
+        [ -d "$dir" ] && cd "$dir"
+        local path="$PWD"
+        echo ${path}/${filename}
+    fi
+}
+
+function backup_file () {
+    local file=$1
+    [ -d "$file" ] && return
+    if [ ! -f "$file" ]; then
+        echo "Cannot backup non-existent file $file"
+        return
+    fi
+    local path=$(fullpath $file)
+    local temp_dir=$(mktemp -d)
+    rsync -ptgolR -T $temp_dir $path $BACKUP_DIR/ && \
+        echo "File $file synced with backup successfully!"
+    rm -rf $temp_dir
+}
+
+function restore_file () {
+    local file=$1
+    [ -d "$file" ] && return
+    local path=$(fullpath $file)
+    local temp_dir=$(mktemp -d)
+    rsync -ptgol -T $temp_dir $BACKUP_DIR/$path $path
+    rm -rf $temp_dir
+}
+
+function handle_diverged_file () {
+	local file_abs_path=$1
+    echo "File $file_abs_path has diverged from the backup"
+    echo "Changes:"
+	${CTI_DIFFTOOL} $file_abs_path $BACKUP_DIR/$file_abs_path
+    echo ""
+    echo "What do you want to do?"
+    local selection=0
+    mchoice selection "Open mergetool" "Restore backup" "Overwrite backup" "Abort"
+    case "$selection" in 
+        'Open mergetool')
+            ${CTI_MERGETOOL} $file_abs_path $BACKUP_DIR/$file_abs_path
+            ;;
+        'Restore backup')
+            restore_file $file_abs_path
+            ;;
+        'Overwrite backup')
+            backup_file $file_abs_path
+            ;;
+        'Abort')
+            exit 0
+            ;;
+        *)
+            abort "Invalid selection $selection"
+            ;;
+    esac
+}
+
+function check_file () {
+    local file=$1
+    local path=$(fullpath $file)
+    if [ ! -f $path ]; then
+        echo "File $path does not yet exist"
+        sleep $MSG_DELAY
+        return
+    fi
+
+    if [ ! -f ${BACKUP_DIR}/$path ]; then
+        echo "File $path is not currently being tracked"
+        sleep $MSG_DELAY
+        return
+    fi
+    local stored_checksum=$(checksum ${BACKUP_DIR}/${path}) 
+    local checksum_before=$(checksum ${path})
+    if [ "$stored_checksum" != "$checksum_before" ];then
+        handle_diverged_file $path
+    else
+        echo "The backup of file $path is up to date!"
+        sleep $MSG_DELAY
+    fi
+}
+
+########### READ COMMAND LINE ARGUMENTS ############
+
+function check_file_arg () {
+    if [ "x$FILE" != "xnone" ];then
+        print_error "Only one file can be treated at once!"
+        print_usage
+        exit -1
+    fi
+}
+
+ACTION="none"
+FILE="none"
+while [ $# -gt 0 ];do
+    case $1 in 
+        'add')
+            if [ "x$ACTION" == "xnone" ];then
+                ACTION="add"
+            else 
+                check_file_arg
+                FILE=$1
+            fi
+            ;;
+        'check')
+            if [ "x$ACTION" == "xnone" ];then
+                ACTION="check"
+            else 
+                check_file_arg
+                FILE=$1
+            fi
+            ;;
+        'edit')
+            if [ "x$ACTION" == "xnone" ];then
+                ACTION="edit"
+            else 
+                check_file_arg
+                FILE=$1
+            fi
+            ;;
+        'restore')
+            if [ "x$ACTION" == "xnone" ];then
+                ACTION="restore"
+            else 
+                check_file_arg
+                FILE=$1
+            fi
+            ;;
+        '-d')
+            set -xe
+            ;;
+        *)
+            check_file_arg
+            FILE=$1
+            ;;
+    esac
+    shift
+done
+
+############### CHECK PERMSISSIONS #################
+
+if [ $UID -ne 0 ] && [ ! -w "${BACKUP_DIR}/${HOME}" ];then
+    echo "User $USER does not have a writable home directory in the backup folder"
+    echo "Backup at least one file in this user's home dir as root to fix this"
+    exit -1
+fi
+
+############### MAIN SWITCH ##########################
+
+case $ACTION in
+    'add')
+        if [ -f $BACKUP_DIR/$(fullpath $FILE) ]; then
+            echo "File $FILE is already being tracked!"
+            exit 0
+        fi
+        echo "Start tracking file $FILE"
+        backup_file $FILE
+        exit 0
+        ;;
+    'check')
+        check_file $FILE
+        ;;
+    'edit')
+        check_file $FILE
+        ${CTI_EDITOR:-${EDITOR:-vi}} $FILE
+        backup_file $FILE
+        ;;
+    'restore')
+        restore_file $FILE
+        ;;
+    *)
+        abort "Unrecognized action $action"
+        ;;
+esac
