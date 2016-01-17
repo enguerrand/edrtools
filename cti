@@ -231,10 +231,16 @@ done
 
 [ "x$ACTION" == "xnone" ] && abort "No valid action provided!"
 
-############### CHECK PERMSISSIONS #################
+########## CHECK BACKUP_DIR AND PERMISSIONS ##########
+
+if [ ! -d "${BACKUP_DIR}" ]; then
+    mkdir -p "${BACKUP_DIR}" || \
+    print_error "The backup directory ${BACKUP_DIR} does not yet exist. Backup at least one file as root to fix this"
+    exit -1
+fi
 
 if [ $UID -ne 0 ] && [ ! -w "${BACKUP_DIR}/${HOME}" ];then
-    echo "User $USER does not have a writable home directory in the backup folder"
+    print_error "User $USER does not have a writable home directory in the backup folder"
     echo "Backup at least one file in this user's home dir as root to fix this"
     exit -1
 fi
