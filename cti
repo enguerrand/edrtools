@@ -11,11 +11,13 @@ CTI_EDITOR=vim
 # If unset, diff is used. If that is not available,
 # differences are not shown.
 CTI_DIFFTOOL=diff
+CTI_DIFFOPTS="-s -N -u"
 #
 # The tool to resolve conflicts.
 # If unset, vimdiff is used. If that is not available,
 # merging is not suggested
 CTI_MERGETOOL=vimdiff
+CTI_MERGEOPTS=""
 #
 # Target directory. 
 BACKUP_DIR=/srv/config/
@@ -80,11 +82,11 @@ if [ "x$1" == "x-h" ];then
 fi
 
 function no_diff () {
-	print_error "No difftool available"
+    print_error "No difftool available"
 }
 
 function no_merge () {
-	print_error "No mergetool available"
+    print_error "No mergetool available"
     exit -1;
 }
 
@@ -131,16 +133,16 @@ function restore_file () {
 }
 
 function handle_diverged_file () {
-	local file_abs_path=$1
+    local file_abs_path=$1
     echo "Changes:"
-	${CTI_DIFFTOOL} $file_abs_path $BACKUP_DIR/$file_abs_path
+    ${CTI_DIFFTOOL} ${CTI_DIFFOPTS} $BACKUP_DIR/$file_abs_path $file_abs_path  
     echo ""
     echo "What do you want to do?"
     local selection=0
     mchoice selection "Open mergetool" "Restore backup" "Overwrite backup" "Ignore" "Abort"
     case "$selection" in 
         'Open mergetool')
-            ${CTI_MERGETOOL} $file_abs_path $BACKUP_DIR/$file_abs_path
+            ${CTI_MERGETOOL} ${CTI_MERGEOPTS} $file_abs_path $BACKUP_DIR/$file_abs_path
             ;;
         'Restore backup')
             restore_file $file_abs_path
