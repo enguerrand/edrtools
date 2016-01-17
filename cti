@@ -202,6 +202,19 @@ function check_file () {
     fi
 }
 
+function edit_file () {
+    local file=$1
+    check_file $file $MSG_DELAY "y"
+    checksum_before=$(checksum $file)
+    ${CTI_EDITOR:-${EDITOR:-vi}} $file
+    checksum_after=$(checksum $file)
+    if [ "$checksum_before" != "$checksum_after" ]; then
+        backup_file $file
+    else
+        echo "Not syncing file because no changes where made!"
+    fi
+}
+
 ########### READ COMMAND LINE ARGUMENTS ############
 
 if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
@@ -245,7 +258,13 @@ while [ $# -gt 0 ];do
     shift
 done
 
+############# CHECK COMMAND LINE ARGS ################
+
 [ "x$ACTION" == "xnone" ] && abort "No valid action provided!"
+
+if [ -z "$FILES" ]; then
+    abort "Arguments missing!"
+fi
 
 ########## CHECK BACKUP_DIR AND PERMISSIONS ##########
 
@@ -263,10 +282,6 @@ fi
 
 ############### MAIN SWITCH ##########################
 
-if [ -z "$FILES" ]; then
-    abort "Arguments missing!"
-fi
-
 for FILE in $FILES; do
     case $ACTION in
         'add')
@@ -280,15 +295,7 @@ for FILE in $FILES; do
             check_file $FILE 0 "n"
             ;;
         'edit')
-            check_file $FILE $MSG_DELAY "y"
-            CHECKSUM_BEFORE=$(checksum $FILE)
-            ${CTI_EDITOR:-${EDITOR:-vi}} $FILE
-            CHECKSUM_AFTER=$(checksum $FILE)
-            if [ "$CHECKSUM_BEFORE" != "$CHECKSUM_AFTER" ]; then
-                backup_file $FILE
-            else
-                echo "Not syncing file because no changes where made!"
-            fi
+            edit_file $FILE
             ;;
         'remove')
             remove_file $FILE
