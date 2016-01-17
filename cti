@@ -157,16 +157,17 @@ function handle_diverged_file () {
 
 function check_file () {
     local file=$1
+    local delay=$2
     local path=$(fullpath $file)
     if [ ! -f $path ]; then
         echo "File $path does not yet exist"
-        sleep $MSG_DELAY
+        sleep $delay
         return
     fi
 
     if [ ! -f ${BACKUP_DIR}/$path ]; then
         echo "File $path is not currently being tracked"
-        sleep $MSG_DELAY
+        sleep $delay
         return
     fi
     local stored_checksum=$(checksum ${BACKUP_DIR}/${path}) 
@@ -175,62 +176,49 @@ function check_file () {
         handle_diverged_file $path
     else
         echo "The backup of file $path is up to date!"
-        sleep $MSG_DELAY
+        sleep $delay
     fi
 }
 
 ########### READ COMMAND LINE ARGUMENTS ############
 
-function check_file_arg () {
-    if [ "x$FILE" != "xnone" ];then
-        print_error "Only one file can be treated at once!"
-        print_usage
-        exit -1
-    fi
-}
-
 ACTION="none"
-FILE="none"
+FILES=""
 while [ $# -gt 0 ];do
     case $1 in 
         'add')
             if [ "x$ACTION" == "xnone" ];then
                 ACTION="add"
             else 
-                check_file_arg
-                FILE=$1
+                FILES+="$1 "
             fi
             ;;
         'check')
             if [ "x$ACTION" == "xnone" ];then
                 ACTION="check"
             else 
-                check_file_arg
-                FILE=$1
+                FILES+="$1 "
             fi
             ;;
         'edit')
             if [ "x$ACTION" == "xnone" ];then
                 ACTION="edit"
             else 
-                check_file_arg
-                FILE=$1
+                FILES+="$1 "
             fi
             ;;
         'restore')
             if [ "x$ACTION" == "xnone" ];then
                 ACTION="restore"
             else 
-                check_file_arg
-                FILE=$1
+                FILES+="$1 "
             fi
             ;;
         '-d')
             set -xe
             ;;
         *)
-            check_file_arg
-            FILE=$1
+            FILES+="$1 "
             ;;
     esac
     shift
@@ -246,28 +234,33 @@ fi
 
 ############### MAIN SWITCH ##########################
 
-case $ACTION in
-    'add')
-        if [ -f $BACKUP_DIR/$(fullpath $FILE) ]; then
-            echo "File $FILE is already being tracked!"
-            exit 0
-        fi
-        echo "Start tracking file $FILE"
-        backup_file $FILE
-        exit 0
-        ;;
-    'check')
-        check_file $FILE
-        ;;
-    'edit')
-        check_file $FILE
-        ${CTI_EDITOR:-${EDITOR:-vi}} $FILE
-        backup_file $FILE
-        ;;
-    'restore')
-        restore_file $FILE
-        ;;
-    *)
-        abort "Unrecognized action $action"
-        ;;
-esac
+if [ -z "$FILES" ]; then
+    abort "Arguments missing!"
+fi
+
+for FILE in $FILES; do
+    case $ACTION in
+        'add')
+            if [ -f $BACKUP_DIR/$(fullpath $FILE) ]; then
+                echo "File $FILE is already being tracked!"
+            else
+                echo "Start tracking file $FILE"
+                backup_file $FILE
+            fi
+            ;;
+        'check')
+            check_file $FILE 0
+            ;;
+        'edit')
+            check_file $FILE $MSG_DELAY
+            ${CTI_EDITOR:-${EDITOR:-vi}} $FILE
+            backup_file $FILE
+            ;;
+        'restore')
+            restore_file $FILE
+            ;;
+        *)
+            abort "Unrecognized action $ACTION"
+            ;;
+    esac
+done
