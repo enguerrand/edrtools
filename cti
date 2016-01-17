@@ -45,7 +45,7 @@ source $BASEDIR/inc_user_input.sh
 
 function print_usage(){
 cat << EOF
-Usage: $(basename $0) [<OPTIONS>] <ACTION> <FILE>
+Usage: $(basename $0) [<OPTIONS>] <ACTION> <FILE> [<FILE> ... ]
 
 $(basename $0) allows you to organize the backup of your config files.
 It maintains a copy of the file hierarchy of your system with only those
@@ -53,40 +53,36 @@ files that are relevant.
 
 ACTIONs:
     add
-        Only add the specified file to the backup without modifying it
+        Start tracking the specified files
 
     edit
-        Edit the specifed file and start tracking it
+        Edit the specifed files and start tracking them
 
     check
-        Only check the current status of the specified file
+        Only check the current status of the specified files
 
     sync
         Same as check, but proposes actions for diverged files
 
     remove
-        Remove a file from the backup
+        Remove specified files from the backup
 
     restore
-        Restore the file from the backup
+        Restore specified files from the backup
 
 Options:
-    -d: debug
+    -d, --debug
         Enable debug mode
 
-    -h: help
+    -h, --help
         Prints this help text
 
 Configuration
-    To modify the behavior of this tool see the config in the head of this
+    To modify the behavior of $(basename $0) see the config in the head of this
     script. The settings can be overridden by settings specified in /etc/ctirc.
     This in turn can be overridden in a user config file in \$HOME/.ctirc.
 EOF
 }
-if [ "x$1" == "x-h" ];then
-    print_usage
-    exit 0
-fi
 
 function no_diff () {
     print_error "No difftool available"
@@ -99,16 +95,16 @@ function no_merge () {
 
 function checksum (){
     local file=$1
-    md5sum $file | cut -d' ' -f 1
+    md5sum -- $file | cut -d' ' -f 1
 }
 
 function fullpath () {
     local file=$1
     if [ -d "$file" ];then
-        cd $file
+        cd -- $file
         pwd
     else
-        local filename=$(basename "$file")
+        local filename=$(basename -- "$file")
         local dir=${file%/*}
         [ -d "$dir" ] && cd "$dir"
         local path="$PWD"
@@ -125,7 +121,7 @@ function backup_file () {
     fi
     local path=$(fullpath $file)
     local temp_dir=$(mktemp -d)
-    rsync -ptgolR -T $temp_dir $path $BACKUP_DIR/ && \
+    rsync -ptgolR -T $temp_dir -- $path $BACKUP_DIR/ && \
     print_ok "File $file synced with backup successfully!"
     rm -rf $temp_dir
 }
@@ -135,15 +131,15 @@ function restore_file () {
     [ -d "$file" ] && return
     local path=$(fullpath $file)
     local temp_dir=$(mktemp -d)
-    rsync -ptgol -T $temp_dir $BACKUP_DIR/$path $path
-    rm -rf $temp_dir
+    rsync -ptgol -T $temp_dir -- $BACKUP_DIR/$path $path
+    rm -rf -- $temp_dir
 }
 
 function remove_file () {
     local file=$1
     [ -z "$BACKUP_DIR" ] && abort "The BACKUP_DIR variable is not set!"
     [ "x$BACKUP_DIR" = "x/" ] && abort "The BACKUP_DIR variable is not valid!"
-    rm -i ${BACKUP_DIR}$(fullpath ${file})
+    rm -i -- ${BACKUP_DIR}$(fullpath ${file})
 }
 
 function handle_diverged_file () {
@@ -208,10 +204,18 @@ function check_file () {
 
 ########### READ COMMAND LINE ARGUMENTS ############
 
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+    print_usage
+    exit 0
+fi
 ACTION="none"
 FILES=""
+NO_OPTS="n"
 while [ $# -gt 0 ];do
     case $1 in 
+        '--')
+            NO_OPTS="y"
+            ;;
         'add'|'check'|'edit'|'remove'|'restore'|'sync')
             if [ "x$ACTION" == "xnone" ];then
                 ACTION="$1"
@@ -219,8 +223,20 @@ while [ $# -gt 0 ];do
                 FILES+="$1 "
             fi
             ;;
-        '-d')
-            set -xe
+        '-d'|'--debug')
+            if [ "x$NO_OPTS" == "xy" ];then
+                FILES+="$1 "
+            else
+                set -xe
+            fi
+            ;;
+        '-h'|'--help')
+            if [ "x$NO_OPTS" == "xy" ];then
+                FILES+="$1 "
+            else
+                print_usage
+                exit 0
+            fi
             ;;
         *)
             FILES+="$1 "
