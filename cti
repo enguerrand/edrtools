@@ -61,12 +61,16 @@ ACTIONs:
     check
         Only check the current status of the specified files
 
+    check-all
+        Recursively check all files in the backup. Does not expect 
+        FILE argument(s)
+
     sync
         Same as check, but proposes actions for diverged files
 
-    recover
-        Recursively sync all files in the backup. Only action that does
-        not expect FILE argument(s)
+    sync-all
+        Recursively sync all files in the backup. Does not expect 
+        FILE argument(s)
 
     remove
         Remove specified files from the file system and the backup
@@ -216,7 +220,7 @@ function check_file () {
         sleep $delay
         return
     elif [ ! -e $path ] && [ -e ${BACKUP_DIR}/$path ]; then
-        echo -e "[\e[1;33m??\e[m] MISSING       $path"
+        echo -e "[\e[1;31m!!\e[m] MISSING       $path"
         [ "x$sync" == "xy" ] && handle_diverged_file $path  "y"
         return
     elif [ -e $path ] && [ -e ${BACKUP_DIR}/$path ]; then
@@ -248,28 +252,30 @@ function edit_file () {
     fi
 }
 
-function recover_dir () {
+function check_dir () {
     local dir=$1
+    local sync=${2:="n"}
     [ -d "$dir" ] || abort "Unexpected error: $dir is not a directory!"
     for file in ${dir}/{*,.*}; do
         if [ "${dir}/." == "$file" ] || [ "${dir}/.." == "$file" ] || [ "${dir}/*" == "$file" ];then
             continue
         fi
         if [ -d "$file" ];then
-            recover_dir "$file"
+            check_dir "$file" $sync
         else
             local stripped_file=$(echo $file | sed -e s#$BACKUP_DIR##)
-            check_file "$stripped_file" 0 "n"
+            check_file "$stripped_file" 0 $sync
         fi
     done
 }
 
-function recover () {
+function check_all () {
+    local sync=${1:="n"}
     if [ $UID -ne 0 ] ;then
-        abort "Action recover should be run as root!"
+        abort "Actions check-all and sync-all should be run as root!"
     fi
     check_backup_dir
-    recover_dir "$BACKUP_DIR"
+    check_dir "$BACKUP_DIR" $sync
 }
 
 ########### READ COMMAND LINE ARGUMENTS ############
@@ -286,7 +292,7 @@ while [ $# -gt 0 ];do
         '--')
             NO_OPTS="y"
             ;;
-        'add'|'check'|'edit'|'recover'|'remove'|'restore'|'sync'|'untrack')
+        'add'|'check'|'check-all'|'edit'|'remove'|'restore'|'sync'|'sync-all'|'untrack')
             if [ "x$ACTION" == "xnone" ];then
                 ACTION="$1"
             else 
@@ -320,8 +326,11 @@ done
 [ "x$ACTION" == "xnone" ] && abort "No valid action provided!"
 
 # Recover is the only action that does not expect further arguments
-if [ "x$ACTION" == "xrecover" ];then
-    recover
+if [ "x$ACTION" == "xcheck-all" ];then
+    check_all "n"
+    exit 0
+elif [ "x$ACTION" == "xsync-all" ];then
+    check_all "y"
     exit 0
 fi
 
