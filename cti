@@ -65,10 +65,13 @@ ACTIONs:
         Same as check, but proposes actions for diverged files
 
     remove
-        Remove specified files from the backup
+        Remove specified files from the file system and the backup
 
     restore
         Restore specified files from the backup
+
+    untrack
+        Remove specified files from the backup
 
 Options:
     -d, --debug
@@ -135,12 +138,19 @@ function restore_file () {
     rm -rf -- $temp_dir
 }
 
-function remove_file () {
+function untrack_file () {
     local file=$1
     [ -z "$BACKUP_DIR" ] && abort "The BACKUP_DIR variable is not set!"
     [ "x$BACKUP_DIR" = "x/" ] && abort "The BACKUP_DIR variable is not valid!"
     rm -i -- ${BACKUP_DIR}$(fullpath ${file})
 }
+
+function remove_file () {
+    local file=$1
+    untrack_file $file
+    rm -i -- ${file}
+}
+
 
 function handle_diverged_file () {
     local file_abs_path=$1
@@ -229,7 +239,7 @@ while [ $# -gt 0 ];do
         '--')
             NO_OPTS="y"
             ;;
-        'add'|'check'|'edit'|'remove'|'restore'|'sync')
+        'add'|'check'|'edit'|'remove'|'restore'|'sync'|'untrack')
             if [ "x$ACTION" == "xnone" ];then
                 ACTION="$1"
             else 
@@ -305,6 +315,9 @@ for FILE in $FILES; do
             ;;
         'sync')
             check_file $FILE 0 "y"
+            ;;
+        'untrack')
+            untrack_file $FILE
             ;;
         *)
             abort "Unrecognized action $ACTION"
