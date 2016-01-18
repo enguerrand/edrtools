@@ -64,6 +64,10 @@ ACTIONs:
     sync
         Same as check, but proposes actions for diverged files
 
+    recover
+        Recursively sync all files in the backup. Only action that does
+        not expect FILE argument(s)
+
     remove
         Remove specified files from the file system and the backup
 
@@ -138,10 +142,14 @@ function restore_file () {
     rm -rf -- $temp_dir
 }
 
-function untrack_file () {
-    local file=$1
+function check_backup_dir () {
     [ -z "$BACKUP_DIR" ] && abort "The BACKUP_DIR variable is not set!"
     [ "x$BACKUP_DIR" = "x/" ] && abort "The BACKUP_DIR variable is not valid!"
+}
+
+function untrack_file () {
+    check_backup_dir
+    local file=$1
     rm -i -- ${BACKUP_DIR}$(fullpath ${file})
 }
 
@@ -195,7 +203,7 @@ function handle_diverged_file () {
 
 function check_file () {
     local file=$1
-    local delay=$2
+    local delay=${2:=0}
     local sync=${3:-y}
     local path=$(fullpath $file)
     
@@ -240,6 +248,30 @@ function edit_file () {
     fi
 }
 
+function recover_dir () {
+    local dir=$1
+    [ -d "$dir" ] || abort "Unexpected error: $dir is not a directory!"
+    for file in ${dir}/{*,.*}; do
+        if [ "${dir}/." == "$file" ] || [ "${dir}/.." == "$file" ] || [ "${dir}/*" == "$file" ];then
+            continue
+        fi
+        if [ -d "$file" ];then
+            recover_dir "$file"
+        else
+            local stripped_file=$(echo $file | sed -e s#$BACKUP_DIR##)
+            check_file "$stripped_file" 0 "n"
+        fi
+    done
+}
+
+function recover () {
+    if [ $UID -ne 0 ] ;then
+        abort "Action recover should be run as root!"
+    fi
+    check_backup_dir
+    recover_dir "$BACKUP_DIR"
+}
+
 ########### READ COMMAND LINE ARGUMENTS ############
 
 if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
@@ -254,7 +286,7 @@ while [ $# -gt 0 ];do
         '--')
             NO_OPTS="y"
             ;;
-        'add'|'check'|'edit'|'remove'|'restore'|'sync'|'untrack')
+        'add'|'check'|'edit'|'recover'|'remove'|'restore'|'sync'|'untrack')
             if [ "x$ACTION" == "xnone" ];then
                 ACTION="$1"
             else 
@@ -286,6 +318,12 @@ done
 ############# CHECK COMMAND LINE ARGS ################
 
 [ "x$ACTION" == "xnone" ] && abort "No valid action provided!"
+
+# Recover is the only action that does not expect further arguments
+if [ "x$ACTION" == "xrecover" ];then
+    recover
+    exit 0
+fi
 
 if [ -z "$FILES" ]; then
     abort "Arguments missing!"
