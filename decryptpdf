@@ -1,0 +1,16 @@
+#!/bin/bash
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+function print_usage(){
+    echo "Usage: $(basename $0) </path/to/pdf>"
+}
+if [ "x$1" == "x-h" ];then
+    print_usage
+    exit 0
+fi
+qpdf --help >/dev/null 2>&1  || abort "Please install qpdf to be able to use this script"
+[ $# -eq 1 ] || print_usage
+PDF=$1
+[ -f "$PDF" ] || abort "$PDF: File not found!"
+read -p "Please enter password for file $PDF:" PASSWORD
+qpdf --password=$PASSWORD --decrypt $PDF ${PDF%.*}"_decrypted.pdf"
