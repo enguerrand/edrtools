@@ -88,6 +88,10 @@ Options:
     -h, --help
         Prints this help text
 
+    -s, --suppress-synced
+        Suppresses output of files in sync in conjunction with actions
+        check and sync
+
 Configuration
     To modify the behavior of $(basename $0) see the config in the head of this
     script. The settings can be overridden by settings specified in /etc/ctirc.
@@ -238,7 +242,7 @@ function check_file () {
         if [ "$stored_checksum" != "$checksum_before" ];then
             echo -e "[\e[1;31m!!\e[m] OUT OF SYNC   $path"
             [ "x$sync" == "xy" ] && handle_diverged_file $path "n"
-        else
+        elif [ "x$SUPPRESS_SYNCED" != "xy" ];then
             echo -e "[\033[00;32mOK\e[m] IN SYNC       $path"
             sleep $delay
         fi
@@ -304,9 +308,10 @@ if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
     print_usage
     exit 0
 fi
-ACTION="none"
-FILES=""
-NO_OPTS="n"
+export ACTION="none"
+export FILES=""
+export NO_OPTS="n"
+export SUPPRESS_SYNCED="n"
 while [ $# -gt 0 ];do
     case $1 in 
         '--')
@@ -333,6 +338,9 @@ while [ $# -gt 0 ];do
                 print_usage
                 exit 0
             fi
+            ;;
+        '-s'|'--suppress-synced')
+            SUPPRESS_SYNCED="y"
             ;;
         *)
             FILES+="$1 "
