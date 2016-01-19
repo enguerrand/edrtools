@@ -179,7 +179,7 @@ function handle_diverged_file () {
     if [ "x$missing" == "xy" ];then
         mchoice selection "Restore backup" "Delete in backup" "Ignore" "Abort"
     else
-        mchoice selection "Open mergetool" "Restore backup" "Overwrite backup" "Ignore" "Abort"
+        mchoice selection "Open mergetool" "Restore backup" "Overwrite backup" "Untrack file" "Ignore" "Abort"
     fi
     case "$selection" in 
         'Open mergetool')
@@ -193,6 +193,9 @@ function handle_diverged_file () {
             ;;
         'Overwrite backup')
             backup_file $file_abs_path
+            ;;
+        'Untrack file')
+            untrack_file $file_abs_path
             ;;
         'Ignore')
             ;;
@@ -255,7 +258,14 @@ function edit_file () {
     fi
 }
 
-function export_funcs () {
+function export_globals () {
+    export CTI_EDITOR
+    export CTI_DIFFTOOL
+    export CTI_DIFFOPTS
+    export CTI_MERGETOOL
+    export CTI_MERGEOPTS
+    export BACKUP_DIR
+    export MSG_DELAY
     export -f mchoice
     export -f abort
     export -f print_ok
@@ -280,7 +290,7 @@ function export_funcs () {
 function check_all () {
     local sync=${1:="n"}
     check_backup_dir
-    export_funcs
+    export_globals
     find $BACKUP_DIR -type f -readable -exec bash -c "check_file {} 0 $sync" \;  
     if [ $UID -ne 0 ];then
         local unreadable=$(find $BACKUP_DIR ! -readable | wc -l)
