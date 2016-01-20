@@ -55,9 +55,6 @@ ACTIONs:
     add
         Start tracking the specified files
 
-    edit
-        Edit the specifed files and start tracking them
-
     check
         Only check the current status of the specified files
 
@@ -65,18 +62,21 @@ ACTIONs:
         Recursively check all files in the backup. Does not expect 
         FILE argument(s)
 
-    sync
-        Same as check, but proposes actions for diverged files
-
-    sync-all
-        Recursively sync all files in the backup. Does not expect 
-        FILE argument(s)
+    edit
+        Edit the specifed files and start tracking them
 
     remove
         Remove specified files from the file system and the backup
 
     restore
         Restore specified files from the backup
+
+    sync
+        Same as check, but proposes actions for diverged files
+
+    sync-all
+        Recursively sync all files in the backup. Does not expect 
+        FILE argument(s)
 
     untrack
         Remove specified files from the backup
