@@ -82,15 +82,38 @@ ACTIONs:
         Remove specified files from the backup
 
 Options:
+    -a, --abort-on-conflict
+        Always abort in case of conflict in conjunction with sync action.
+        Conflicts with all other "*-on-conflict" flags.
+
+    -b, --backup-on-conflict
+        Always overwrite the backup with the current state of the file in
+        case of conflict in conjunction with sync action.
+        Conflicts with all other "*-on-conflict" flags.
+    
     -d, --debug
-        Enable debug mode
+        Enable debug mode.
 
     -h, --help
-        Prints this help text
+        Prints this help text.
+
+    -i, --ignore-on-conflict
+        Always ignore conflicts in conjunction with sync action.
+        Conflicts with all other "*-on-conflict" flags.
+
+    -r, --restore-on-conflict
+        Always restore the backup and overwrite the current state in case
+        of conflict in conjunction with sync action.
+        Conflicts with all other "*-on-conflict" flags.
 
     -s, --suppress-synced
         Suppresses output of files in sync in conjunction with actions
-        check and sync
+        check and sync.
+
+    -u, --untrack-on-conflict
+        Always delete backup file (i.e. untrack file) in case of conflict
+        in conjunction with sync action.
+        Conflicts with all other "*-on-conflict" flags.
 
 Configuration
     To modify the behavior of $(basename $0) see the config in the head of this
@@ -167,7 +190,6 @@ function remove_file () {
     rm -i -- ${file}
 }
 
-
 function handle_diverged_file () {
     local file_abs_path=$1
     local missing=${2:="n"}
@@ -178,13 +200,33 @@ function handle_diverged_file () {
         ${CTI_DIFFTOOL} ${CTI_DIFFOPTS} $BACKUP_DIR/$file_abs_path $file_abs_path  
     fi
     echo ""
-    echo "What do you want to do?"
     local selection=0
-    if [ "x$missing" == "xy" ];then
-        mchoice selection "Restore backup" "Delete in backup" "Ignore" "Abort"
-    else
-        mchoice selection "Open mergetool" "Restore backup" "Overwrite backup" "Untrack file" "Ignore" "Abort"
-    fi
+    case $CONFLICT_RESOLUTION in 
+        'abort')
+            selection="Abort"
+            ;;
+        'backup')
+            selection="Overwrite backup"
+            ;;
+        'ignore')
+            selection="Ignore"
+            ;;
+        'restore')
+            selection="Restore backup"
+            ;;
+        'untrack')
+            selection="Untrack file"
+            ;;
+        *)
+            echo "What do you want to do?"
+            if [ "x$missing" == "xy" ];then
+                mchoice selection "Restore backup" "Delete in backup" "Ignore" "Abort"
+            else
+                mchoice selection "Open mergetool" "Restore backup" "Overwrite backup" "Untrack file" "Ignore" "Abort"
+            fi
+            ;;
+    esac
+
     case "$selection" in 
         'Open mergetool')
             ${CTI_MERGETOOL} ${CTI_MERGEOPTS} $file_abs_path $BACKUP_DIR/$file_abs_path
@@ -192,14 +234,11 @@ function handle_diverged_file () {
         'Restore backup')
             restore_file $file_abs_path
             ;;
-        "Delete in backup")
+        'Delete in backup'|'Untrack file')
             untrack_file $file_abs_path
             ;;
         'Overwrite backup')
             backup_file $file_abs_path
-            ;;
-        'Untrack file')
-            untrack_file $file_abs_path
             ;;
         'Ignore')
             ;;
@@ -302,6 +341,17 @@ function check_all () {
     fi
 }
 
+function set_conflict_resolution () {
+    local resolution=$1
+    if [ "x$CONFLICT_RESOLUTION" != "xmanual" ];then
+        print_error "Invalid combination of command line flags! Only one automatic conflict resolution strategy can be set!"
+        echo ""
+        print_usage
+        exit -1
+    fi
+    CONFLICT_RESOLUTION="$resolution"
+}
+
 ########### READ COMMAND LINE ARGUMENTS ############
 
 if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
@@ -312,6 +362,7 @@ export ACTION="none"
 export FILES=""
 export NO_OPTS="n"
 export SUPPRESS_SYNCED="n"
+export CONFLICT_RESOLUTION="manual"
 while [ $# -gt 0 ];do
     case $1 in 
         '--')
@@ -323,6 +374,12 @@ while [ $# -gt 0 ];do
             else 
                 FILES+="$1 "
             fi
+            ;;
+        '-a'|'--abort-on-conflict')
+            set_conflict_resolution "abort"
+            ;;
+        '-b'|'--backup-on-conflict')
+            set_conflict_resolution "backup"
             ;;
         '-d'|'--debug')
             if [ "x$NO_OPTS" == "xy" ];then
@@ -339,8 +396,17 @@ while [ $# -gt 0 ];do
                 exit 0
             fi
             ;;
+        '-i'|'--ignore-on-conflict')
+            set_conflict_resolution "ignore"
+            ;;
+        '-r'|'--restore-on-conflict')
+            set_conflict_resolution "restore"
+            ;;
         '-s'|'--suppress-synced')
             SUPPRESS_SYNCED="y"
+            ;;
+        '-u'|'--untrack-on-conflict')
+            set_conflict_resolution "untrack"
             ;;
         *)
             FILES+="$1 "
