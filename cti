@@ -415,9 +415,19 @@ while [ $# -gt 0 ];do
     shift
 done
 
-############# CHECK COMMAND LINE ARGS ################
+########## CHECK BACKUP_DIR AND PERMISSIONS ##########
 
-[ "x$ACTION" == "xnone" ] && abort "No valid action provided!"
+if [ ! -d "${BACKUP_DIR}" ]; then
+    mkdir -p "${BACKUP_DIR}" || \
+    print_error "The backup directory ${BACKUP_DIR} does not yet exist. Backup at least one file as root to fix this"
+    exit -1
+fi
+
+if [ $UID -ne 0 ] && [ ! -w "${BACKUP_DIR}/${HOME}" ];then
+    print_error "User $USER does not have a writable home directory in the backup folder"
+    echo "Backup at least one file in this user's home dir as root to fix this"
+    exit -1
+fi
 
 # Recover is the only action that does not expect further arguments
 if [ "x$ACTION" == "xcheck-all" ];then
@@ -432,19 +442,10 @@ if [ -z "$FILES" ]; then
     abort "Arguments missing!"
 fi
 
-########## CHECK BACKUP_DIR AND PERMISSIONS ##########
+############# CHECK COMMAND LINE ARGS ################
 
-if [ ! -d "${BACKUP_DIR}" ]; then
-    mkdir -p "${BACKUP_DIR}" || \
-    print_error "The backup directory ${BACKUP_DIR} does not yet exist. Backup at least one file as root to fix this"
-    exit -1
-fi
+[ "x$ACTION" == "xnone" ] && abort "No valid action provided!"
 
-if [ $UID -ne 0 ] && [ ! -w "${BACKUP_DIR}/${HOME}" ];then
-    print_error "User $USER does not have a writable home directory in the backup folder"
-    echo "Backup at least one file in this user's home dir as root to fix this"
-    exit -1
-fi
 
 ############### MAIN SWITCH ##########################
 
