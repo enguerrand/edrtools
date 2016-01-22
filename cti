@@ -419,14 +419,12 @@ done
 
 if [ ! -d "${BACKUP_DIR}" ]; then
     mkdir -p "${BACKUP_DIR}" || \
-    print_error "The backup directory ${BACKUP_DIR} does not yet exist. Backup at least one file as root to fix this"
-    exit -1
+    abort "The backup directory ${BACKUP_DIR} does not yet exist. Backup at least one file as root to fix this"
 fi
 
 if [ $UID -ne 0 ] && [ ! -w "${BACKUP_DIR}/${HOME}" ];then
     print_error "User $USER does not have a writable home directory in the backup folder"
-    echo "Backup at least one file in this user's home dir as root to fix this"
-    exit -1
+    abort "Backup at least one file in this user's home dir as root to fix this"
 fi
 
 # Recover is the only action that does not expect further arguments
