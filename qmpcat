@@ -1,0 +1,71 @@
+#!/bin/bash
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+function print_usage(){
+    echo "Usage: $(basename $0) <socket-file>"
+}
+
+function assign_file () {
+	if [ "x$SOCKET_FILE" == "x" ];then
+		SOCKET_FILE=$1
+	else
+		abort "No more than one socket file allowed"
+	fi
+}
+
+NO_OPTS="n"
+SOCKET_FILE=""
+RAW="n"
+while [ $# -gt 0 ];do
+    case $1 in 
+        '--')
+            NO_OPTS="y"
+            ;;
+        '-h'|'--help')
+            if [ "x$NO_OPTS" == "xy" ];then
+                assign_file $1
+            else
+				print_usage
+				exit 0
+			fi
+            ;;
+        '-r'|'--raw')
+            if [ "x$NO_OPTS" == "xy" ];then
+                assign_file $1
+            else
+				RAW="y"
+			fi
+            ;;
+        *)
+			assign_file $1
+            ;;
+    esac
+    shift
+done
+
+[ -z "$SOCKET_FILE" ] && abort "Socket file argument missing!"
+[ -e "$SOCKET_FILE" ] || abort "$SOCKET_FILE: File not found"
+
+function negotiate_qmp_capabilities () {
+    echo '{ "execute": "qmp_capabilities" }'
+}
+
+function pre_process () {
+    local input=$(echo "$@")
+	if [ "x$RAW" == "xy" ];then
+		local output=$input
+	else 
+		local output=$(echo $input | sed -e 's/\(.*\)/{ "execute": "human-monitor-command", "arguments": { "command-line": "\1" } }/g' )
+	fi
+	echo $output
+}
+
+function qmp_shell () {
+	negotiate_qmp_capabilities
+	while [ "x$CMD" != "xbye" ]; do
+		read CMD
+		[ -n "$CMD" ] && pre_process "$CMD" 	
+	done 
+}
+
+qmp_shell | socat - UNIX-CONNECT:$SOCKET_FILE
