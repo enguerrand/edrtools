@@ -65,6 +65,7 @@ function qmp_shell () {
 	while [ "x$CMD" != "xbye" ]; do
 		read CMD
 		[ -n "$CMD" ] && pre_process "$CMD" 	
+        [ "x$CMD" == "xquit" ] && break
 	done 
 }
 
