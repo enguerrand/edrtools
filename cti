@@ -133,7 +133,11 @@ function no_merge () {
 
 function checksum (){
     local file=$1
-    md5sum -- $file | cut -d' ' -f 1
+    if [ -z "$file" ] || [ ! -r "$file" ];then
+        echo "0"
+    else
+        md5sum -- $file | cut -d' ' -f 1
+    fi
 }
 
 function fullpath () {
