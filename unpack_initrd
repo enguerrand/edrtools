@@ -1,0 +1,32 @@
+#!/bin/bash
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+source $BASEDIR/inc_user_input.sh
+function print_usage(){
+    echo "Usage: $(basename $0) <initrd-file>"
+}
+
+if [ "x$1" == "x-h" ];then
+    print_usage
+    exit 0
+fi
+
+for TOOL in {xz,cpio}; do
+    which $TOOL > /dev/null 2>&1 || abort "Need ${TOOL}"
+done
+
+INITRD=$1
+[ -z "$INITRD" ] && abort "Initrd file argument missing"
+[ -f "$INITRD" ] || abort "Initrd file $INITRD not found!"
+
+TARGET_DIR=$(mktemp -d)
+CONTENT_DIR=${TARGET_DIR}/initrd_content
+cp "$INITRD" $TARGET_DIR
+cd $TARGET_DIR
+# TODO allow for specification of compression method via cmd line args
+mv "$INITRD" "${INITRD}.xz"
+xz -d "${INITRD}.xz"
+mkdir -p $CONTENT_DIR
+cd $CONTENT_DIR
+cpio -id < "${TARGET_DIR}/${INITRD}"
+echo "initramfs content unpacked to $CONTENT_DIR"
