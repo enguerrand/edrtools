@@ -3,7 +3,8 @@ BASEDIR=$(dirname $0)
 source $BASEDIR/inc_msg.sh
 source $BASEDIR/inc_user_input.sh
 function print_usage(){
-    echo "Usage: $(basename $0) <initrd-file>"
+    echo "Usage: $(basename $0) <initrd-file> [<compression-type>]"
+    echo "where compression-type is one of xz|gz|zip|bz2 and gz is the default"
 }
 
 if [ "x$1" == "x-h" ];then
@@ -11,21 +12,47 @@ if [ "x$1" == "x-h" ];then
     exit 0
 fi
 
-for TOOL in {xz,cpio}; do
-    which $TOOL > /dev/null 2>&1 || abort "Need ${TOOL}"
-done
+[ "$(id -u)" == "0" ] || abort "Need root privileges for cpio to be happy!"
+
 
 INITRD=$1
 [ -z "$INITRD" ] && abort "Initrd file argument missing"
 [ -f "$INITRD" ] || abort "Initrd file $INITRD not found!"
 
+COMPRESSION_TYPE=${2:-gz}
+case $COMPRESSION_TYPE in 
+    'gz')
+        UNPACK_CMD="gunzip"
+        UNPACK_FLAGS=""
+        ;;
+    'zip')
+        UNPACK_CMD="unzip"
+        UNPACK_FLAGS=""
+        ;;
+    'xz')
+        UNPACK_CMD="xz"
+        UNPACK_FLAGS="-d"
+        ;;
+    'bz2')
+        UNPACK_CMD="bunzip2"
+        UNPACK_FLAGS=""
+        ;;
+    *)
+        abort "Invalid compression type $COMPRESSION_TYPE"
+        ;;
+esac
+
+for TOOL in {$UNPACK_CMD,cpio}; do
+    which $TOOL > /dev/null 2>&1 || abort "Need ${TOOL}"
+done
+
+set -e
 TARGET_DIR=$(mktemp -d)
 CONTENT_DIR=${TARGET_DIR}/initrd_content
 cp "$INITRD" $TARGET_DIR
 cd $TARGET_DIR
-# TODO allow for specification of compression method via cmd line args
-mv "$INITRD" "${INITRD}.xz"
-xz -d "${INITRD}.xz"
+mv "$INITRD" "${INITRD}.${COMPRESSION_TYPE}"
+${UNPACK_CMD} ${UNPACK_FLAGS} "${INITRD}.${COMPRESSION_TYPE}" 
 mkdir -p $CONTENT_DIR
 cd $CONTENT_DIR
 cpio -id < "${TARGET_DIR}/${INITRD}"
