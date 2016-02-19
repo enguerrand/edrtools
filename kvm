@@ -1,0 +1,81 @@
+#!/bin/bash
+BASEDIR=$(dirname $0)
+export CONFIG_DIR="$HOME/.kvmrc"
+function abort(){
+    echo "Error: $@"
+    exit -1
+}
+
+function forward_port(){
+    local src_port=$1
+    local dest_port=$2
+    [[ "${src_port}" =~ ^[1-9]+[0-9]{0,4}$ ]] || abort "Invalid source port: $src_port"
+    [[ "${dest_port}" =~ ^[1-9]+[0-9]{0,4}$ ]] || abort "Invalid destination port: $dest_port"
+    OPTS+=" -redir tcp:${src_port}::${dest_port}"
+}
+
+function check_config(){
+    mkdir -p $CONFIG_DIR
+    [ -f $CONFIG_DIR/default ] && return
+    read -p "It seems you don't have a default config. Create one? [Y/n] " create_defaults
+    [[ "$create_defaults" =~ [Nn] ]] && return
+    cat >> $CONFIG_DIR/default << EOF
+MEMORY=2048
+KEYBOARD_LAYOUT="de"
+# c for hard drive, d for cdrom
+BOOT_DEVICE="c"
+OPTS="-vga std"
+EOF
+
+    cat >> $CONFIG_DIR/usbtest << EOF
+source $CONFIG_DIR/default
+BOOT_DEVICE="d"
+# Uncomment the lines below as needed.
+# Creation of a hard disk image will be proposed if needed
+#DISK_IMAGE=/path/to/usbtest.img
+#CDROM=/path/to/cdimage.iso
+EOF
+}
+
+check_config
+VM=$1
+if [ -z "$VM" ]; then
+    echo "Error: Missing argument: VM"
+    exit -1
+elif [ ! -r "$CONFIG_DIR/$VM" ]; then
+    echo "Error: VM $VM does not exist or is not readable!"
+    exit -1
+fi
+shift
+source $CONFIG_DIR/$VM
+if [ -n "$DISK_IMAGE" ] && [ ! -e "$DISK_IMAGE" ];then
+    read -p "Hard disk image $DISK_IMAGE does not exit. Create it? [y/N]: " CREATE_DISK
+    if [[ "$CREATE_DISK" =~ [YyJj] ]];then
+        read -p "Enter size in GB: " SIZE
+        qemu-img create "$DISK_IMAGE" -f qcow2 ${SIZE}G || exit -1
+    fi
+fi
+OPTS+=" $@"
+[ -n "$CDROM" ] && BOOT_DEVICE="d"
+
+echo "Running qemu with options \"$OPTS\""
+TEMP_FILE=$(mktemp)
+function run_qemu () {
+    qemu-system-x86_64 \
+        -k $KEYBOARD_LAYOUT \
+        -enable-kvm \
+        -m $MEMORY \
+        -localtime \
+        $( [ -n "$DISK_IMAGE" ] && [ -r "$DISK_IMAGE" ] && echo "-hda $DISK_IMAGE") \
+        $( [ -n "$CDROM" ] && [ -r "$CDROM" ] && echo "-cdrom $CDROM") \
+        -boot once=${BOOT_DEVICE},menu=on \
+        -name "$VM_NAME" \
+        -qmp unix:$TEMP_FILE,server,nowait \
+        $OPTS 
+    rm -f $TEMP_FILE
+}
+
+run_qemu &
+sleep 1
+[ -e $TEMP_FILE ] && $BASEDIR/qmpcat $TEMP_FILE
+rm -f $TEMP_FILE
