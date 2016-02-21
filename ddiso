@@ -1,0 +1,26 @@
+#!/bin/bash
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+function print_usage(){
+    echo "Usage: $(basename $0) <iso-image> <block device>"
+}
+if [ "x$1" == "x-h" ];then
+    print_usage
+    exit 0
+fi
+
+[ $# -eq 2 ] || abort "Invalid argument count: $#"
+
+OPTIONS="bs=4M oflag=sync"
+ISO=$1
+DEV=$2
+[ "$(id -u)" == "0" ] || abort "Need root privileges!" 
+[ -f $ISO ] || abort "File not found: $ISO"
+[ -b $DEV ] || abort "Not a block device: $DEV"
+
+read -p "Will dd file ${ISO} to block device ${DEV}... are you sure? [y/N]: " CONFIRM
+if [[ "$CONFIRM" =~ [YyJj] ]];then
+    dd if=${ISO} of=${DEV} $OPTIONS
+else
+    abort "Operation aborted by user!"
+fi
