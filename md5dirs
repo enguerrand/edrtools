@@ -1,0 +1,45 @@
+#!/bin/bash
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+function print_usage(){
+cat << EOF
+Usage: 
+    $(basename $0) <sourcedir> <destdir>"
+    compares two directories
+or:
+    $(basename $0) <sourcedir> <outfile>"
+    writes md5sums to outfile for sourcedir
+or:
+    $(basename $0) <infile> <destdir>"
+    checks destdir with md5sums from infile
+
+requires: md5sum
+EOF
+}
+
+if [ "x$1" == "x-h" ];then
+    print_usage
+    exit 0
+fi
+which md5sum > /dev/null 2>&1 || abort "md5sum not installed!"
+if [ -d "$1" ] && [ -d "$2" ];then
+    SRC_DIR=$(cd $1 && pwd)
+    DST_DIR=$2
+    cd $DST_DIR
+    md5sum  -c <(find $SRC_DIR -type f -print0 | xargs -0 md5sum)
+elif [ -f "$1" ] && [ -d "$2" ];then
+    SRC_FIL=$(cd $(dirname $1) && pwd)/$(basename $1)
+    DST_DIR=$2
+    cd $DST_DIR
+    md5sum -c $SRC_FIL 
+elif [ -d "$1" ];then
+    SRC_DIR=$1
+    DST_FIL=$2
+    touch $DST_FIL
+    DST_FIL=$(cd $(dirname $DST_FIL) && pwd)/$(basename $DST_FIL)
+    cd $SRC_DIR
+    find . -type f -print0 | xargs -0 md5sum > $DST_FIL
+else
+    abort "Invalid arguments!"
+fi
+
