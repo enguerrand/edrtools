@@ -188,6 +188,12 @@ function untrack_file () {
     rm -i -- ${BACKUP_DIR}$(fullpath ${file})
 }
 
+function delete_file_in_backup () {
+    check_backup_dir
+    local full_path_to_file=$1
+    rm -i -- ${BACKUP_DIR}/${full_path_to_file}
+}
+
 function remove_file () {
     local file=$1
     untrack_file $file
@@ -238,8 +244,11 @@ function handle_diverged_file () {
         'Restore backup')
             restore_file $file_abs_path
             ;;
-        'Delete in backup'|'Untrack file')
+        'Untrack file')
             untrack_file $file_abs_path
+            ;;
+        'Delete in backup')
+            delete_file_in_backup $file_abs_path
             ;;
         'Overwrite backup')
             backup_file $file_abs_path
@@ -327,6 +336,7 @@ function export_globals () {
     export -f restore_file
     export -f check_backup_dir
     export -f untrack_file
+    export -f delete_file_in_backup
     export -f remove_file
     export -f handle_diverged_file
     export -f check_file
