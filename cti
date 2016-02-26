@@ -351,7 +351,7 @@ function check_all () {
     find $BACKUP_DIR -type f -readable -exec bash -c "check_file {} 0 $sync" \;  
     if [ $UID -ne 0 ];then
         local unreadable=$(find $BACKUP_DIR ! -readable | wc -l)
-        [ $unreadable -gt 0 ] && print_warning "Some files or folders could not be read. You may want to re-run cti with higher priviliges."
+        [ $unreadable -gt 0 ] && print_warning "Some files or folders could not be read. You may want to re-run cti with higher privileges."
     fi
 }
 
