@@ -1,9 +1,11 @@
 #!/bin/bash
 BASEDIR=$(dirname $0)
 source $BASEDIR/inc_msg.sh
+source $BASEDIR/inc_dependencies.sh
 which socat > /dev/null 2>&1 || abort "socat must be installed to use this script"
 function print_usage(){
     echo "Usage: $(basename $0) <socket-file>"
+    print_dependencies
 }
 
 function assign_file () {
@@ -13,6 +15,8 @@ function assign_file () {
 		abort "No more than one socket file allowed"
 	fi
 }
+
+set_dependencies "socat"
 
 NO_OPTS="n"
 SOCKET_FILE=""
@@ -43,6 +47,8 @@ while [ $# -gt 0 ];do
     esac
     shift
 done
+
+check_dependencies
 
 [ -z "$SOCKET_FILE" ] && abort "Socket file argument missing!"
 [ -e "$SOCKET_FILE" ] || abort "$SOCKET_FILE: File not found"
