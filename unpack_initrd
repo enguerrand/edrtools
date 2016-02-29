@@ -2,6 +2,7 @@
 BASEDIR=$(dirname $0)
 source $BASEDIR/inc_msg.sh
 source $BASEDIR/inc_user_input.sh
+source $BASEDIR/inc_dependencies.sh
 function print_usage(){
     echo "Usage: $(basename $0) <initrd-file> [<compression-type>]"
     echo "where compression-type is one of xz|gz|zip|bz2 and gz is the default"
@@ -42,18 +43,16 @@ case $COMPRESSION_TYPE in
         ;;
 esac
 
-for TOOL in {$UNPACK_CMD,cpio}; do
-    which $TOOL > /dev/null 2>&1 || abort "Need ${TOOL}"
-done
+set_dependencies $UNPACK_CMD cpio
+check_dependencies
 
 set -e
 TARGET_DIR=$(mktemp -d)
 CONTENT_DIR=${TARGET_DIR}/initrd_content
-cp "$INITRD" $TARGET_DIR
+cp "$INITRD" $TARGET_DIR/initrd.${COMPRESSION_TYPE}
 cd $TARGET_DIR
-mv "$INITRD" "${INITRD}.${COMPRESSION_TYPE}"
-${UNPACK_CMD} ${UNPACK_FLAGS} "${INITRD}.${COMPRESSION_TYPE}" 
+${UNPACK_CMD} ${UNPACK_FLAGS} "initrd.${COMPRESSION_TYPE}" 
 mkdir -p $CONTENT_DIR
 cd $CONTENT_DIR
-cpio -id < "${TARGET_DIR}/${INITRD}"
+cpio -id < "${TARGET_DIR}/initrd"
 echo "initramfs content unpacked to $CONTENT_DIR"
