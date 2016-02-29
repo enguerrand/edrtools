@@ -1,6 +1,7 @@
 #!/bin/bash
 BASEDIR=$(dirname $0)
 source $BASEDIR/inc_msg.sh
+source $BASEDIR/inc_dependencies.sh
 function print_usage(){
 cat << EOF
 Usage: 
@@ -13,15 +14,19 @@ or:
     $(basename $0) <infile> <destdir>"
     checks destdir with md5sums from infile
 
-requires: md5sum
 EOF
+    print_dependencies
 }
+
+set_dependencies "md5sum"
 
 if [ "x$1" == "x-h" ];then
     print_usage
     exit 0
 fi
-which md5sum > /dev/null 2>&1 || abort "md5sum not installed!"
+
+check_dependencies
+
 if [ -d "$1" ] && [ -d "$2" ];then
     SRC_DIR=$(cd $1 && pwd)
     DST_DIR=$2
