@@ -38,9 +38,9 @@ source $BASEDIR/inc_msg.sh
 source $BASEDIR/inc_user_input.sh
 #
 # Check toolchain
-[ -x /usr/bin/${CTI_DIFFTOOL:=diff} ] || CTI_DIFFTOOL=no_diff
+which ${CTI_DIFFTOOL:=diff} > /dev/null 2>&1  || CTI_DIFFTOOL=no_diff
 #
-[ -x /usr/bin/${CTI_MERGETOOL:=vimdiff} ] || CTI_MERGETOOL=no_merge
+which ${CTI_MERGETOOL:=vimdiff} > /dev/null 2>&1 || CTI_MERGETOOL=no_merge
 #
 
 function print_usage(){
