@@ -23,6 +23,4 @@ function check_dependencies(){
 function check_dependency(){
     local _dep=$1
     which $_dep >/dev/null 2>&1 || abort "Missing dependency: $_dep"
-    local _executable=$(which $_dep)
-    [ -x $_executable ] || abort "Not executable: $_executable"
 }
