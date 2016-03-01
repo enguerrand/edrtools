@@ -2,7 +2,6 @@
 BASEDIR=$(dirname $0)
 source $BASEDIR/inc_msg.sh
 source $BASEDIR/inc_dependencies.sh
-which socat > /dev/null 2>&1 || abort "socat must be installed to use this script"
 function print_usage(){
     echo "Usage: $(basename $0) <socket-file>"
     print_dependencies
