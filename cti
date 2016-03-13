@@ -182,16 +182,22 @@ function check_backup_dir () {
     [ "x$BACKUP_DIR" = "x/" ] && abort "The BACKUP_DIR variable is not valid!"
 }
 
+function clean_backup_dir () {
+    find "$BACKUP_DIR" -type d -empty -delete
+}
+
 function untrack_file () {
     check_backup_dir
     local file=$1
     rm -i -- ${BACKUP_DIR}$(fullpath ${file})
+    clean_backup_dir
 }
 
 function delete_file_in_backup () {
     check_backup_dir
     local full_path_to_file=$1
     rm -i -- ${BACKUP_DIR}/${full_path_to_file}
+    clean_backup_dir
 }
 
 function remove_file () {
