@@ -5,13 +5,13 @@ source $BASEDIR/inc_dependencies.sh
 function print_usage(){
 cat << EOF
 Usage: 
-    $(basename $0) <sourcedir> <destdir>"
+    $(basename $0) <sourcedir> <destdir>
     compares two directories
 or:
-    $(basename $0) <sourcedir> <outfile>"
+    $(basename $0) <sourcedir> <outfile>
     writes md5sums to outfile for sourcedir
 or:
-    $(basename $0) <infile> <destdir>"
+    $(basename $0) <infile> <destdir>
     checks destdir with md5sums from infile
 
 EOF
