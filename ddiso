@@ -12,6 +12,12 @@ fi
 [ $# -eq 2 ] || abort "Invalid argument count: $#"
 
 OPTIONS="bs=4M oflag=sync"
+VERSION=$(dd --version | head -n 1 | egrep -o [0-9\.]+)
+MAJOR_VERSION=$(echo $VERSION | cut -d'.' -f 1)
+MINOR_VERSION=$(echo $VERSION | cut -d'.' -f 2)
+if [ $MAJOR_VERSION -gt 8 ] || ( [ $MAJOR_VERSION -eq 8 ] && [ $MINOR_VERSION -ge 24 ] ) ; then
+    OPTIONS+=" status=progress"
+fi
 ISO=$1
 DEV=$2
 [ "$(id -u)" == "0" ] || abort "Need root privileges!" 
