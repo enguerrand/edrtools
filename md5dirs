@@ -31,7 +31,7 @@ if [ -d "$1" ] && [ -d "$2" ];then
     SRC_DIR=$(cd $1 && pwd)
     DST_DIR=$2
     cd $DST_DIR
-    md5sum  -c <(find $SRC_DIR -type f -print0 | xargs -0 md5sum)
+    md5sum  -c <(cd $SRC_DIR && find . -type f -print0 | xargs -0 md5sum)
 elif [ -f "$1" ] && [ -d "$2" ];then
     SRC_FIL=$(cd $(dirname $1) && pwd)/$(basename $1)
     DST_DIR=$2
