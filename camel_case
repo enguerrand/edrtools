@@ -1,0 +1,12 @@
+#!/bin/bash
+function print_usage(){
+    echo "Reads input from provided file and converts words with _ to camel case notation. The result is printed to stdout"
+    echo "Usage: $(basename $0) <FILE>"
+    exit 0
+}
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+    print_usage
+fi
+INPUT_FILE=$1
+[ -n "$INPUT_FILE" ] || print_usage
+sed -E 's/([a-z])_([[:lower:]])/\1\U\2/g' $INPUT_FILE
