@@ -11,6 +11,8 @@ Valid options are:
         Include lock file mechanism functions
     -m
         Include message printing functions
+    -o
+        Adds options parser
     -u
         Include user input multiple choice function
     -p
@@ -40,6 +42,11 @@ while [ $# -gt 0 ];do
             shift
             continue
             ;;
+        '-o')
+            INC_OPT_PARSER="y"
+            shift
+            continue
+            ;;
         '-u')
             INC_USER_INPUT="y"
             shift
@@ -55,19 +62,71 @@ while [ $# -gt 0 ];do
     [ -z $NEWSCRIPT ] && exit
     if [ ! -f $NEWSCRIPT ];then
         echo '#!/bin/bash' > $NEWSCRIPT
+        echo 'set -e' >> $NEWSCRIPT
         [ "x$INC_BASEDIR" == "xy" ] && echo "BASEDIR=\$(dirname \$0)" >> $NEWSCRIPT
         [ "x$INC_LOCK" == "xy" ] && echo "source \$BASEDIR/inc_lock.sh" >> $NEWSCRIPT
         [ "x$INC_MSG" == "xy" ] && echo "source \$BASEDIR/inc_msg.sh" >> $NEWSCRIPT
         [ "x$INC_USER_INPUT" == "xy" ] && echo "source \$BASEDIR/inc_user_input.sh" >> $NEWSCRIPT
-        [ "x$INC_PRINT_USAGE" == "xy" ] && cat >> $NEWSCRIPT << "EOF"
+        [ "x$INC_PRINT_USAGE" == "xy" ] && cat >> $NEWSCRIPT << "OEOF"
 function print_usage(){
-    echo "Usage: $(basename $0)"
+    cat << EOF
+OEOF
+        if [ "x$INC_OPT_PARSER" == "xy" ]; then
+        cat >> $NEWSCRIPT << "OEOF"
+Usage: $(basename $0) [OPTIONS]"
+
+Options:
+    --:
+        Stop processing any further options
+
+    -d,--debug:
+        Run script in debugging mode
+
+    -h,--help:
+        Print this help
+OEOF
+        else
+            echo 'Usage: $(basename $0)"' >> $NEWSCRIPT
+        fi
+        cat >> $NEWSCRIPT << "OEOF"
+EOF
 }
-if [ "x$1" == "x-h" ];then
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
     print_usage
     exit 0
 fi
-EOF
+OEOF
+        if [ "x$INC_OPT_PARSER" == "xy" ]; then
+            cat >> $NEWSCRIPT << "OEOF"
+ARGS=""
+while [ $# -gt 0 ];do
+    case $1 in 
+        '--')
+            NO_OPTS="y"
+            ;;
+        '-d'|'--debug')
+            if [ "x$NO_OPTS" == "xy" ];then
+                ARGS+="$1 "
+            else
+                set -xe
+            fi
+            ;;
+        '-h'|'--help')
+            if [ "x$NO_OPTS" == "xy" ];then
+                ARGS+="$1 "
+            else
+                print_usage
+                exit 0
+            fi
+            ;;
+        *)
+            ARGS+="$1 "
+            ;;
+    esac
+    shift
+done
+OEOF
+        fi
         chmod +x $NEWSCRIPT
     fi
     ${EDITOR:-vi} $NEWSCRIPT 
