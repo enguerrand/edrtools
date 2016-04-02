@@ -25,7 +25,7 @@ function ask(){
 
 function ask_arg(){
     local opt=$1 && shift
-    read -p "      Include option ${opt} ($@) ? [y/N]: " inc
+    read -p "Include option ${opt} ($@) (requires argument)? [y/N]: " inc
     if [[ "$inc" =~ [YyJj] ]]; then
 		read -p "This option requires an argument: " argument
 		OPTIONS+="${opt}=${argument} "
