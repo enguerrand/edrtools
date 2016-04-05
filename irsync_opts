@@ -15,9 +15,11 @@ fi
 
 OPTIONS=""
 
+LAST_ANSWER=""
 function ask(){
     local opt=$1 && shift
     read -p "Include option ${opt} ($@) ? [y/N]: " inc
+    LAST_ANSWER=$inc
     if [[ "$inc" =~ [YyJj] ]]; then
         OPTIONS+="${opt} "
     fi
@@ -26,6 +28,7 @@ function ask(){
 function ask_arg(){
     local opt=$1 && shift
     read -p "Include option ${opt} ($@) (requires argument)? [y/N]: " inc
+    LAST_ANSWER=$inc
     if [[ "$inc" =~ [YyJj] ]]; then
 		read -p "This option requires an argument: " argument
 		OPTIONS+="${opt}=${argument} "
@@ -35,29 +38,31 @@ function ask_arg(){
 ask     '--verbose'               'increase verbosity'
 ask     '--quiet'                 'suppress non-error messages'
 ask     '--checksum'              'skip based on checksum, not mod-time & size'
-ask     '--archive'               'archive mode; equals -rlptgoD (no -H,-A,-X)'
-ask     '--recursive'             'recurse into directories'
-ask     '--relative'              'use relative path names'
 ask     '--update'                'skip files that are newer on the receiver'
-ask     '--links'                 'copy symlinks as symlinks'
-ask     '--copy-links'            'transform symlink into referent file/dir'
-ask     '--copy-unsafe-links'     'only "unsafe" symlinks are transformed'
-ask     '--safe-links'            'ignore symlinks that point outside the tree'
-ask     '--copy-dirlinks'         'transform symlink to dir into referent dir'
-ask     '--keep-dirlinks'         'treat symlinked dir on receiver as dir'
+ask     '--archive'               'archive mode; equals -rlptgoD (no -H,-A,-X)'
+if ! [[ "$LAST_ANSWER" =~ [YyJj] ]]; then
+    ask     '--recursive'             'recurse into directories'
+    ask     '--perms'                 'preserve permissions'
+    ask     '--owner'                 'preserve owner (super-user only)'
+    ask     '--group'                 'preserve group'
+    ask     '--devices'               'preserve device files (super-user only)'
+    ask     '--specials'              'preserve special files'
+    ask     '--times'                 'preserve modification times'
+    ask     '--links'                 'copy symlinks as symlinks'
+fi
+[[ "$LAST_ANSWER" =~ [YyJj] ]] || ask     '--copy-links'            'transform symlink into referent file/dir'
+[[ "$LAST_ANSWER" =~ [YyJj] ]] || ask     '--copy-unsafe-links'     'only "unsafe" symlinks are transformed'
+[[ "$LAST_ANSWER" =~ [YyJj] ]] || ask     '--safe-links'            'ignore symlinks that point outside the tree'
+[[ "$LAST_ANSWER" =~ [YyJj] ]] || ask     '--copy-dirlinks'         'transform symlink to dir into referent dir'
+[[ "$LAST_ANSWER" =~ [YyJj] ]] || ask     '--keep-dirlinks'         'treat symlinked dir on receiver as dir'
 ask     '--hard-links'            'preserve hard links'
-ask     '--perms'                 'preserve permissions'
 ask     '--executability'         'preserve executability'
+ask     '--relative'              'use relative path names'
 ask_arg '--chmod'                 'affect file and/or directory permissions'
 ask     '--acls'                  'preserve ACLs (implies -p)'
 ask     '--xattrs'                'preserve extended attributes'
-ask     '--owner'                 'preserve owner (super-user only)'
-ask     '--group'                 'preserve group'
-ask     '--devices'               'preserve device files (super-user only)'
-ask     '--specials'              'preserve special files'
-ask     '--times'                 'preserve modification times'
 ask     '--dry-run'               'perform a trial run with no changes made'
-ask     '--one-file-system'       'don not cross filesystem boundaries'
+ask     '--one-file-system'       'do not cross filesystem boundaries'
 ask_arg '--rsh'                   'specify the remote shell to use'
 ask     '--delete'                'delete extraneous files from dest dirs'
 ask     '--prune-empty-dirs'      'prune empty directory chains from file-list'
