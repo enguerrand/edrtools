@@ -67,7 +67,8 @@ while [ $# -gt 0 ];do
         [ "x$INC_LOCK" == "xy" ] && echo "source \$BASEDIR/inc_lock.sh" >> $NEWSCRIPT
         [ "x$INC_MSG" == "xy" ] && echo "source \$BASEDIR/inc_msg.sh" >> $NEWSCRIPT
         [ "x$INC_USER_INPUT" == "xy" ] && echo "source \$BASEDIR/inc_user_input.sh" >> $NEWSCRIPT
-        [ "x$INC_PRINT_USAGE" == "xy" ] && cat >> $NEWSCRIPT << "OEOF"
+        if [ "x$INC_PRINT_USAGE" == "xy" ]; then
+		 cat >> $NEWSCRIPT << "OEOF"
 function print_usage(){
     cat << EOF
 OEOF
@@ -96,6 +97,7 @@ if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
     exit 0
 fi
 OEOF
+	fi
         if [ "x$INC_OPT_PARSER" == "xy" ]; then
             cat >> $NEWSCRIPT << "OEOF"
 ARGS=""
