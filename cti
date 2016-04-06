@@ -183,7 +183,7 @@ function check_backup_dir () {
 }
 
 function clean_backup_dir () {
-    find "$BACKUP_DIR" -type d -empty -delete
+    [ $UID -eq 0 ] && find "$BACKUP_DIR" -type d -empty -delete
 }
 
 function untrack_file () {
