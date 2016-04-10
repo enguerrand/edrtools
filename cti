@@ -341,6 +341,7 @@ function export_globals () {
     export -f backup_file
     export -f restore_file
     export -f check_backup_dir
+    export -f clean_backup_dir
     export -f untrack_file
     export -f delete_file_in_backup
     export -f remove_file
