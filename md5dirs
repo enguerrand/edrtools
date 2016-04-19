@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 BASEDIR=$(dirname $0)
 source $BASEDIR/inc_msg.sh
 source $BASEDIR/inc_dependencies.sh
@@ -10,6 +11,9 @@ Usage:
 or:
     $(basename $0) <sourcedir> <outfile>
     writes md5sums to outfile for sourcedir
+or:
+    $(basename $0) <sourcedir>
+    writes md5sums to stdout for sourcedir
 or:
     $(basename $0) <infile> <destdir>
     checks destdir with md5sums from infile
@@ -39,11 +43,17 @@ elif [ -f "$1" ] && [ -d "$2" ];then
     md5sum -c $SRC_FIL 
 elif [ -d "$1" ];then
     SRC_DIR=$1
-    DST_FIL=$2
-    touch $DST_FIL
-    DST_FIL=$(cd $(dirname $DST_FIL) && pwd)/$(basename $DST_FIL)
+    if [ $# -gt 1 ];then
+        DST_FIL=$2
+        touch $DST_FIL
+        DST_FIL=$(cd $(dirname $DST_FIL) && pwd)/$(basename $DST_FIL)
+    fi
     cd $SRC_DIR
-    find . -type f -print0 | xargs -0 md5sum > $DST_FIL
+    if [ -n "$DST_FIL" ];then
+        find . -type f -print0 | xargs -0 md5sum > $DST_FIL
+    else
+        find . -type f -print0 | xargs -0 md5sum
+    fi
 else
     abort "Invalid arguments!"
 fi
