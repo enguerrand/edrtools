@@ -21,29 +21,25 @@ NO_OPTS="n"
 SOCKET_FILE=""
 RAW="n"
 while [ $# -gt 0 ];do
-    case $1 in 
-        '--')
-            NO_OPTS="y"
-            ;;
-        '-h'|'--help')
-            if [ "x$NO_OPTS" == "xy" ];then
+    if [ "x$NO_OPTS" == "xy" ] && [[ "$1" =~ \-.* ]];then
+        assign_file $1
+    else
+        case $1 in
+            '--')
+                NO_OPTS="y"
+                ;;
+            '-h'|'--help')
+                print_usage
+                exit 0
+                ;;
+            '-r'|'--raw')
+                RAW="y"
+                ;;
+            *)
                 assign_file $1
-            else
-				print_usage
-				exit 0
-			fi
-            ;;
-        '-r'|'--raw')
-            if [ "x$NO_OPTS" == "xy" ];then
-                assign_file $1
-            else
-				RAW="y"
-			fi
-            ;;
-        *)
-			assign_file $1
-            ;;
-    esac
+                ;;
+        esac
+    fi
     shift
 done
 
