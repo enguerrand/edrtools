@@ -385,54 +385,50 @@ export NO_OPTS="n"
 export SUPPRESS_SYNCED="n"
 export CONFLICT_RESOLUTION="manual"
 while [ $# -gt 0 ];do
-    case $1 in 
-        '--')
-            NO_OPTS="y"
-            ;;
-        'add'|'check'|'check-all'|'edit'|'remove'|'restore'|'sync'|'sync-all'|'untrack')
-            if [ "x$ACTION" == "xnone" ];then
-                ACTION="$1"
-            else 
-                FILES+="$1 "
-            fi
-            ;;
-        '-a'|'--abort-on-conflict')
-            set_conflict_resolution "abort"
-            ;;
-        '-b'|'--backup-on-conflict')
-            set_conflict_resolution "backup"
-            ;;
-        '-d'|'--debug')
-            if [ "x$NO_OPTS" == "xy" ];then
-                FILES+="$1 "
-            else
+    if [ "x$NO_OPTS" == "xy" ] && [[ "$1" =~ \-.* ]];then
+        FILES+="$1 "
+    else
+        case $1 in 
+            '--')
+                NO_OPTS="y"
+                ;;
+            'add'|'check'|'check-all'|'edit'|'remove'|'restore'|'sync'|'sync-all'|'untrack')
+                if [ "x$ACTION" == "xnone" ];then
+                    ACTION="$1"
+                else 
+                    FILES+="$1 "
+                fi
+                ;;
+            '-a'|'--abort-on-conflict')
+                set_conflict_resolution "abort"
+                ;;
+            '-b'|'--backup-on-conflict')
+                set_conflict_resolution "backup"
+                ;;
+            '-d'|'--debug')
                 set -xe
-            fi
-            ;;
-        '-h'|'--help')
-            if [ "x$NO_OPTS" == "xy" ];then
-                FILES+="$1 "
-            else
+                ;;
+            '-h'|'--help')
                 print_usage
                 exit 0
-            fi
-            ;;
-        '-i'|'--ignore-on-conflict')
-            set_conflict_resolution "ignore"
-            ;;
-        '-r'|'--restore-on-conflict')
-            set_conflict_resolution "restore"
-            ;;
-        '-s'|'--suppress-synced')
-            SUPPRESS_SYNCED="y"
-            ;;
-        '-u'|'--untrack-on-conflict')
-            set_conflict_resolution "untrack"
-            ;;
-        *)
-            FILES+="$1 "
-            ;;
-    esac
+                ;;
+            '-i'|'--ignore-on-conflict')
+                set_conflict_resolution "ignore"
+                ;;
+            '-r'|'--restore-on-conflict')
+                set_conflict_resolution "restore"
+                ;;
+            '-s'|'--suppress-synced')
+                SUPPRESS_SYNCED="y"
+                ;;
+            '-u'|'--untrack-on-conflict')
+                set_conflict_resolution "untrack"
+                ;;
+            *)
+                FILES+="$1 "
+                ;;
+        esac
+    fi
     shift
 done
 
