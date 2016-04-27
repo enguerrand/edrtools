@@ -102,29 +102,25 @@ OEOF
             cat >> $NEWSCRIPT << "OEOF"
 ARGS=""
 while [ $# -gt 0 ];do
-    case $1 in 
-        '--')
-            NO_OPTS="y"
-            ;;
-        '-d'|'--debug')
-            if [ "x$NO_OPTS" == "xy" ];then
-                ARGS+="$1 "
-            else
+    if [ "x$NO_OPTS" == "xy" ] && [[ "$1" =~ \-.* ]];then
+        ARGS+="$1 "
+    else
+        case $1 in 
+            '--')
+                NO_OPTS="y"
+                ;;
+            '-d'|'--debug')
                 set -xe
-            fi
-            ;;
-        '-h'|'--help')
-            if [ "x$NO_OPTS" == "xy" ];then
-                ARGS+="$1 "
-            else
+                ;;
+            '-h'|'--help')
                 print_usage
                 exit 0
-            fi
-            ;;
-        *)
-            ARGS+="$1 "
-            ;;
-    esac
+                ;;
+            *)
+                ARGS+="$1 "
+                ;;
+        esac
+    fi
     shift
 done
 OEOF
