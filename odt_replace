@@ -1,0 +1,69 @@
+#!/bin/bash
+set -e
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+function print_usage(){
+    cat << EOF
+Usage: $(basename $0) [OPTIONS] <ODS DOCUMENT> <SEARCH> <REPLACE_FILE> "
+
+Searches for SEARCH in ODS document and replaces occurrences with the lines in REPLACE_FILE
+For each line in this file the first occurrence in the document is replaced.
+This allows to create serial letters etc...
+
+Options:
+    -d,--debug:
+        Run script in debugging mode
+
+    -h,--help:
+        Print this help
+EOF
+}
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+    print_usage
+    exit 0
+fi
+REPLACE=""
+ODS_DOC=""
+SEARCH=""
+while [ $# -gt 0 ];do
+    case $1 in 
+        '--')
+            NO_OPTS="y"
+            ;;
+        '-d'|'--debug')
+            set -xe
+            ;;
+        '-h'|'--help')
+            print_usage
+            exit 0
+            ;;
+        *)
+            if [ "x$ODS_DOC" == "x" ]; then
+                ODS_DOC=$1
+            elif [ "x$SEARCH" == "x" ]; then
+                SEARCH=$1
+            elif [ "x$REPLACE" == "x" ];then
+                REPLACE="$1"
+            fi
+            ;;
+    esac
+    shift
+done
+[ -n "$ODS_DOC" ] || abort "No ods file given!"
+[ -f "$ODS_DOC" ] || abort "$ODS_DOC: file not found!"
+[ -n "$SEARCH" ] || abort "No search argument given!"
+[ -n "$REPLACE" ] || abort "No replace file given!"
+[ -f "$REPLACE" ] || abort "$REPLACE: file not found!"
+
+TMP_DIR=$(mktemp -d)
+unzip $ODS_DOC -d $TMP_DIR
+WORK_DIR=$(pwd)
+oldifs=$IFS
+IFS=$'\n';
+for LINE in $(cat $REPLACE); do
+    sed -i "s/$SEARCH/"$LINE"/" $TMP_DIR/content.xml
+done
+IFS=$oldifs
+cd $TMP_DIR
+zip -r $WORK_DIR/$(basename $ODS_DOC)"_ods_replaced.odt" ./*
+rm -rf $TMP_DIR
