@@ -4,7 +4,26 @@ BASEDIR=$(dirname $0)
 export CONFIG_DIR="$HOME/.kvmrc"
 function abort(){
     echo "Error: $@"
+    print_usage
     exit -1
+}
+
+function print_usage(){
+cat << EOF
+qemu wrapper
+Usage: $(basename $0) [<OPTIONS>] <VM NAME> 
+
+Options:
+    -d, --debug
+        Enable debug mode.
+
+    -h, --help
+        Prints this help text.
+
+    -q, --quiet
+        Suppresses the use of qmpcat
+
+EOF
 }
 
 function forward_port(){
@@ -25,7 +44,10 @@ MEMORY=2048
 KEYBOARD_LAYOUT="de"
 # c for hard drive, d for cdrom
 BOOT_DEVICE="c"
+# Spawn a graphical window
 OPTS="-vga std"
+# Comment the above line and uncomment the below line to suppress the graphical window
+#OPTS="-display none"
 EOF
 
     cat >> $CONFIG_DIR/usbtest << EOF
@@ -39,7 +61,39 @@ EOF
 }
 
 check_config
-VM=$1
+
+VM=""
+NO_OPTS="n"
+QUIET="n"
+while [ $# -gt 0 ];do
+    if [ "x$NO_OPTS" == "xy" ] && [[ "$1" =~ \-.* ]];then
+        VM=$1
+    else
+        case $1 in
+            '--')
+                NO_OPTS="y"
+                ;;
+            '-h'|'--help')
+                print_usage
+                exit 0
+                ;;
+            '-d'|'--debug')
+                set -ex
+                ;;
+            '-q'|'--quiet')
+                QUIET="y"
+                ;;
+            *)
+                if [ -n "$VM" ];then
+                    abort "Too many VM names specified!"
+                else
+                    VM=$1
+                fi
+                ;;
+        esac
+    fi
+    shift
+done
 if [ -z "$VM" ]; then
     echo "Error: Missing argument: VM"
     exit -1
@@ -47,7 +101,6 @@ elif [ ! -r "$CONFIG_DIR/$VM" ]; then
     echo "Error: VM $VM does not exist or is not readable!"
     exit -1
 fi
-shift
 source $CONFIG_DIR/$VM
 if [ -n "$DISK_IMAGE" ] && [ ! -e "$DISK_IMAGE" ];then
     read -p "Hard disk image $DISK_IMAGE does not exit. Create it? [y/N]: " CREATE_DISK
@@ -78,5 +131,5 @@ function run_qemu () {
 
 run_qemu &
 sleep 1
-[ -e $TEMP_FILE ] && $BASEDIR/qmpcat $TEMP_FILE
+[ "x$QUIET" != "xy" ] && [ -e $TEMP_FILE ] && $BASEDIR/qmpcat $TEMP_FILE
 rm -f $TEMP_FILE
