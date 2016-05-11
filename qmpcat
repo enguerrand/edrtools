@@ -65,7 +65,7 @@ function pre_process () {
 function qmp_shell () {
 	negotiate_qmp_capabilities
 	while [ "x$CMD" != "xbye" ] && [ -e "$SOCKET_FILE" ]; do
-		read CMD
+		read CMD || break
 		[ -n "$CMD" ] && pre_process "$CMD" 	
         [ "x$CMD" == "xquit" ] && break
 	done 
