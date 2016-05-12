@@ -23,6 +23,8 @@ Options:
     -q, --quiet
         Suppresses the use of qmpcat
 
+    -s, --socket-file <FILE>
+        Use specified file as socket file for qmpcat
 EOF
 }
 
@@ -80,6 +82,11 @@ while [ $# -gt 0 ];do
             '-d'|'--debug')
                 set -ex
                 ;;
+            '-s'|'--socket-file')
+		shift
+		[ -n "$1" ] || abort "Option -s, --socket-file requires an argument!"
+		SOCKET_FILE=$1
+                ;;
             '-q'|'--quiet')
                 QUIET="y"
                 ;;
@@ -113,7 +120,7 @@ OPTS+=" $@"
 [ -n "$CDROM" ] && BOOT_DEVICE="d"
 
 echo "Running qemu with options \"$OPTS\""
-TEMP_FILE=$(mktemp)
+TEMP_FILE=${SOCKET_FILE:-$(mktemp)}
 function run_qemu () {
     qemu-system-x86_64 \
         -k $KEYBOARD_LAYOUT \
