@@ -138,5 +138,7 @@ function run_qemu () {
 
 run_qemu &
 sleep 1
-[ "x$QUIET" != "xy" ] && [ -e $TEMP_FILE ] && $BASEDIR/qmpcat $TEMP_FILE
-rm -f $TEMP_FILE
+if [ "x$QUIET" != "xy" ]; then
+	[ -e $TEMP_FILE ] && $BASEDIR/qmpcat $TEMP_FILE
+	rm -f $TEMP_FILE
+fi
