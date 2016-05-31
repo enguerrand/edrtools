@@ -1,0 +1,17 @@
+#!/bin/bash
+set -e
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+source $BASEDIR/inc_dependencies.sh
+
+function print_usage(){
+    echo "Usage: $(basename $0) <command line>"
+    print_dependencies
+}
+
+set_dependencies "firejail"
+check_dependencies
+
+FJ_OPTS="--blacklist=/srv/"
+FJ="firejail ${FJ_OPTS} "
+${FJ} $@
