@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 BASEDIR=$(dirname $0)
 source $BASEDIR/inc_msg.sh
 function print_usage {
@@ -12,8 +13,7 @@ if [ "x$1" == "x-h" ]; then
 fi
 TARGET_DEV=$1
 [ -z $TARGET_DEV ] && abort $(print_usage)
-TARGET=/tmp/chroot.$BASHPID
-mkdir -p $TARGET
+TARGET=$(mktemp -d)
 mount $TARGET_DEV $TARGET
 for DIR in \
     "/dev" \
@@ -21,7 +21,7 @@ for DIR in \
     "/proc" \
     "/sys" 
 do
-    mkdir -p ${TARGET}${DIR}
+    [ -d ${TARGET}${DIR} ] || mkdir -p ${TARGET}${DIR}
     mount --bind ${DIR} ${TARGET}${DIR}
 done
 read -p "Copy resolv.conf to target system? [y/N]" CPRC
@@ -29,8 +29,9 @@ if [ "x${CPRC}" == "xy" ];then
     cp /etc/resolv.conf $TARGET/etc/resolv.conf
 fi
 chroot $TARGET /bin/bash
-umount $TARGET /dev/pts
+sleep 1
 for DIR in \
+    "/dev/pts" \
     "/dev" \
     "/proc" \
     "/sys" 
