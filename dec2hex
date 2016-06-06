@@ -1,0 +1,17 @@
+#!/bin/bash
+set -e
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+function print_usage(){
+    cat << EOF
+Usage: $(basename $0)" <decimal number>
+EOF
+}
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+    print_usage
+    exit 0
+fi
+DEC=$1
+[ -z "$DEC" ] && abort "Argument missing!"
+[[ "$DEC" =~ ^[0-9]+$ ]] || abort "$DEC : Not a valid number!"
+printf '%x\n' $DEC

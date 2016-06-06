@@ -1,0 +1,17 @@
+#!/bin/bash
+set -e
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+function print_usage(){
+    cat << EOF
+Usage: $(basename $0)" <hex number>
+EOF
+}
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+    print_usage
+    exit 0
+fi
+HEX=$1
+[ -z "$HEX" ] && abort "Argument missing!"
+[[ "$HEX" =~ 0x.* ]] || HEX="0x"$HEX
+echo $(($HEX))
