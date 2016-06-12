@@ -1,0 +1,34 @@
+#!/bin/bash
+set -e
+BASEDIR=$(dirname $0)
+SOURCES_LIST=/etc/apt/sources.list
+DEBIAN_RELEASE_NAME=$(grep ^VERSION= /etc/os-release | sed -e "s/.*(\(.*\)).*/\1/")
+source $BASEDIR/inc_msg.sh
+function print_usage(){
+    cat << EOF
+Usage: $(basename $0) [ packages .... ]"
+
+-Adds a backports entry to $SOURCES_LIST (if it is not already present)
+-Installs packages given as arguments from backports repo 
+EOF
+}
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+    print_usage
+    exit 0
+fi
+
+[ "$(id -u)" == "0" ] || abort "Run as root!"
+
+function setup_bpo(){
+    read -p "Did not find backports entry in ${SOURCES_LIST}. Add it now? [Y/n]: " _add
+    [[ "${_add}" =~ [nN] ]] || \
+        echo "" >> ${SOURCES_LIST} && \
+        echo "# ${DEBIAN_RELEASE_NAME} backports" >> ${SOURCES_LIST} && \
+        echo "deb http://ftp.debian.org/debian ${DEBIAN_RELEASE_NAME}-backports main contrib non-free" >> ${SOURCES_LIST} \
+        && aptitude update
+}
+
+grep -q ${DEBIAN_RELEASE_NAME}-backports ${SOURCES_LIST} || setup_bpo
+[ $# -eq 0 ] && exit 
+
+aptitude -t ${DEBIAN_RELEASE_NAME}-backports install $@
