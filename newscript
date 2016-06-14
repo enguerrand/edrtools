@@ -8,6 +8,8 @@ Usage: $(basename $0) [OPTIONS] [list of filenames for new scripts]
 Valid options are:
     -b 
         Initialize edrtools BASEDIR variable
+    -d
+        Include dependency checking functions
     -l
         Include lock file mechanism functions
     -m
@@ -30,6 +32,11 @@ while [ $# -gt 0 ];do
     case "$1" in
         '-b')
             INC_BASEDIR="y"
+            shift
+            continue
+            ;;
+        '-d')
+            INC_DEPENDENCIES="y"
             shift
             continue
             ;;
@@ -65,6 +72,7 @@ while [ $# -gt 0 ];do
         echo '#!/bin/bash' > $NEWSCRIPT
         echo 'set -e' >> $NEWSCRIPT
         [ "x$INC_BASEDIR" == "xy" ] && echo "BASEDIR=\$(dirname \$0)" >> $NEWSCRIPT
+        [ "x$INC_DEPENDENCIES" == "xy" ] && echo "source \$BASEDIR/inc_dependencies.sh" >> $NEWSCRIPT
         [ "x$INC_LOCK" == "xy" ] && echo "source \$BASEDIR/inc_lock.sh" >> $NEWSCRIPT
         [ "x$INC_MSG" == "xy" ] && echo "source \$BASEDIR/inc_msg.sh" >> $NEWSCRIPT
         [ "x$INC_USER_INPUT" == "xy" ] && echo "source \$BASEDIR/inc_user_input.sh" >> $NEWSCRIPT
