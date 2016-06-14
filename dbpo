@@ -4,6 +4,7 @@ BASEDIR=$(dirname $0)
 SOURCES_LIST=/etc/apt/sources.list
 DEBIAN_RELEASE_NAME=$(grep ^VERSION= /etc/os-release | sed -e "s/.*(\(.*\)).*/\1/")
 source $BASEDIR/inc_msg.sh
+source $BASEDIR/inc_dependencies.sh
 function print_usage(){
     cat << EOF
 Usage: $(basename $0) [ packages .... ]"
@@ -16,6 +17,9 @@ if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
     print_usage
     exit 0
 fi
+
+set_dependencies "aptitude"
+check_dependencies
 
 [ "$(id -u)" == "0" ] || abort "Run as root!"
 
