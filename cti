@@ -4,19 +4,19 @@
 #
 # The editor that should be used to edit files
 # If unset, the content of the EDITOR variable is used.
-# If that is also unset, vi is used
-CTI_EDITOR=vim
+# If that is also unset, vim is used
+CTI_EDITOR=/usr/bin/vim
 #
 # The tool to show conflicts. 
 # If unset, diff is used. If that is not available,
 # differences are not shown.
-CTI_DIFFTOOL=diff
+CTI_DIFFTOOL=/usr/bin/diff
 CTI_DIFFOPTS="-s -N -u"
 #
 # The tool to resolve conflicts.
 # If unset, vimdiff is used. If that is not available,
 # merging is not suggested
-CTI_MERGETOOL=vimdiff
+CTI_MERGETOOL=/usr/bin/vimdiff
 CTI_MERGEOPTS=""
 #
 # Target directory. 
