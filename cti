@@ -101,6 +101,10 @@ Options:
         Always ignore conflicts in conjunction with sync action.
         Conflicts with all other "*-on-conflict" flags.
 
+    -n, --no-auto-add
+        When a file is not currently tracked, do not start tracking it in 
+        conjunction with action edit but only open it in the editor.
+
     -r, --restore-on-conflict
         Always restore the backup and overwrite the current state in case
         of conflict in conjunction with sync action.
@@ -309,14 +313,22 @@ function check_file () {
 
 function edit_file () {
     local file=$1
-    check_file $file $MSG_DELAY "y"
-    checksum_before=$(checksum $file)
-    ${CTI_EDITOR:-${EDITOR:-vi}} $file
-    checksum_after=$(checksum $file)
-    if [ "$checksum_before" != "$checksum_after" ]; then
-        backup_file $file
+    local full_path=$(fullpath $file)
+    local path=$(echo $full_path | \
+        sed -e s#^$BACKUP_DIR##  | \
+        sed -e 's#^\([^/]\)#/\1#g') # prepend slash if needed
+    if [ "x$NO_AUTO_ADD" == "xy" ] && [ ! -e ${BACKUP_DIR}/$path ]; then
+        ${CTI_EDITOR:-${EDITOR:-vi}} $file
     else
-        echo "Not syncing file because no changes where made!"
+        check_file $file $MSG_DELAY "y"
+        checksum_before=$(checksum $file)
+        ${CTI_EDITOR:-${EDITOR:-vi}} $file
+        checksum_after=$(checksum $file)
+        if [ "$checksum_before" != "$checksum_after" ]; then
+            backup_file $file
+        else
+            echo "Not syncing file because no changes where made!"
+        fi
     fi
 }
 
@@ -382,6 +394,7 @@ fi
 export ACTION="none"
 export FILES=""
 export NO_OPTS="n"
+export NO_AUTO_ADD="n"
 export SUPPRESS_SYNCED="n"
 export CONFLICT_RESOLUTION="manual"
 while [ $# -gt 0 ];do
@@ -414,6 +427,9 @@ while [ $# -gt 0 ];do
                 ;;
             '-i'|'--ignore-on-conflict')
                 set_conflict_resolution "ignore"
+                ;;
+            '-n'|'--no-auto-add')
+                NO_AUTO_ADD="y"
                 ;;
             '-r'|'--restore-on-conflict')
                 set_conflict_resolution "restore"
