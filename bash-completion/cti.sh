@@ -13,6 +13,7 @@ complete -f -W \
     --debug \
     --help \
     --ignore-on-conflict \
+    --no-auto-add
     --restore-on-conflict \
     --suppress-synced \
     --untrack-on-conflict \
