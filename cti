@@ -104,6 +104,10 @@ Options:
     -n, --no-auto-add
         When a file is not currently tracked, do not start tracking it in 
         conjunction with action edit but only open it in the editor.
+        This can be helpful to avoid accidentally editing files directly
+        without cti, and can be used e.g. in combination with an alias similar
+        to this:
+        alias vi='${BASEDIR}/cti edit --no-auto-add'
 
     -r, --restore-on-conflict
         Always restore the backup and overwrite the current state in case
