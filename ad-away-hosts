@@ -19,23 +19,6 @@ function create_static_hosts(){
     echo ""
 }
 
-function create_static_hosts(){
-    echo "# Private hosts entries"
-    echo ""
-    cat $HOSTS
-    echo ""
-    echo "# AdAway Host Entries"
-    echo ""
-}
-function create_static_hosts(){
-    echo "# Private hosts entries"
-    echo ""
-    cat $HOSTS
-    echo ""
-    echo "# AdAway Host Entries"
-    echo ""
-}
-
 function pull_ad_away_hosts(){
     cat ${HOSTS_STATIC} > ${HOSTS}
     # only trust empty lines, comments and dns entries that start with 0.0.0.0 for security reasons
