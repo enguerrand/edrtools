@@ -10,7 +10,10 @@ function get_device(){
     list_devices | head -n $index | tail -n 1
 }
 function print_usage {
-    printf "Usage: `basename $0` <mode>\nwhere:\n\tmode = (single|dual|left|right)\n";
+    echo "Usage: `basename $0` <mode> [res1 [res2]]";
+    echo "    where: mode = (single|dual|left|right)";
+    echo "           res1 = resolution of primary display";
+    echo "           res2 = resolution of secondary";
 }
 if [ "x$1" == "x-h" ]; then
     printf "Finds the first two displays from xrandr output and sets them according to the MODE parameter.\n\n"
@@ -18,20 +21,32 @@ if [ "x$1" == "x-h" ]; then
     exit 0
 fi
 MODE=$1
+RES1=$2
+RES2=$3
 [ -z $MODE ] && abort $(print_usage)
+
+RES1_ARG="--auto"
+RES2_ARG="--auto"
+if [ "x${RES1}" != "x" ];then
+    RES1_ARG="--mode ${RES1}"
+    if [ "x${RES2}" != "x" ];then
+        RES2_ARG="--mode ${RES2}"
+    fi
+fi
+
 PRIMARY=$(get_device 1)
 SECONDARY=$(get_device 2)
 echo "Primary display device: $PRIMARY"
 echo "Secondary display device: $SECONDARY"
 
 if [ $MODE == "single" ];then
-	xrandr  --output $PRIMARY --auto 
+	xrandr  --output $PRIMARY ${RES1_ARG} 
 elif [ "$MODE" == "left" ]; then
-	xrandr  --output $SECONDARY --auto --output $PRIMARY --auto  --right-of $SECONDARY;
+	xrandr  --output $SECONDARY ${RES2_ARG} --output $PRIMARY ${RES1_ARG} --right-of $SECONDARY;
 elif [ "$MODE" == "right" ]; then
-	xrandr  --output $SECONDARY --auto --output $PRIMARY --auto  --left-of $SECONDARY;
+	xrandr  --output $SECONDARY ${RES2_ARG} --output $PRIMARY ${RES1_ARG} --left-of $SECONDARY;
 elif [ "$MODE" == "dual" ]; then
-	xrandr  --output $SECONDARY --auto --output $PRIMARY --auto  --same-as $SECONDARY;
+	xrandr  --output $SECONDARY ${RES2_ARG} --output $PRIMARY ${RES1_ARG} --same-as $SECONDARY;
 else
 	quit;
 fi
