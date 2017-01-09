@@ -15,6 +15,6 @@ if [ -z "$1" ] || [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
 fi
 xset -dpms
 xset s off
-$@
+eval "$@"
 xset +dpms
 xset s on
