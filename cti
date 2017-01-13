@@ -35,7 +35,6 @@ MSG_DELAY=1.0
 # Include other files
 BASEDIR=$(dirname $0)
 source $BASEDIR/inc_msg.sh
-source $BASEDIR/inc_user_input.sh
 #
 # Check toolchain
 which ${CTI_DIFFTOOL:=diff} > /dev/null 2>&1  || CTI_DIFFTOOL=no_diff
@@ -244,9 +243,15 @@ function handle_diverged_file () {
         *)
             echo "What do you want to do?"
             if [ "x$missing" == "xy" ];then
-                mchoice selection "Restore backup" "Delete in backup" "Ignore" "Abort"
+                select selection in {"Restore backup","Delete in backup","Ignore","Abort"}; do 
+                    [ -z "$selection" ] || break
+                    print_warning "Invalid choice!"
+                done
             else
-                mchoice selection "Open mergetool" "Restore backup" "Overwrite backup" "Untrack file" "Ignore" "Abort"
+                select selection in {"Open mergetool","Restore backup","Overwrite backup","Untrack file","Ignore","Abort"}; do 
+                    [ -z "$selection" ] || break
+                    print_warning "Invalid choice!"
+                done
             fi
             ;;
     esac
@@ -344,7 +349,6 @@ function export_globals () {
     export CTI_MERGEOPTS
     export BACKUP_DIR
     export MSG_DELAY
-    export -f mchoice
     export -f abort
     export -f print_ok
     export -f print_warning

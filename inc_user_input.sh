@@ -1,9 +1,17 @@
 #!/bin/bash
 #
-# Builds a multiple choice menu
-# Example:
+# Builds a multiple choice menu. DEPRECATED
 #
-# ~$ source /opt/edrtools/inc_user_input.sh
+# Note that this behavior can be achieved with better formatting using the bash built-in "select":
+#
+#  select MY_RESULT in {"foo","bar","two words"}; do
+#       [ -z "$MY_RESULT" ] || break
+#       echo "Invalid choice"
+#  done
+#
+# Usage Example:
+#
+# ~$ source $BASEDIR/inc_user_input.sh
 # ~$ mchoice MY_RESULT foo bar "two words"
 # 1) foo
 # 2) bar
