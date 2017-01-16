@@ -3,7 +3,7 @@ BASEDIR=$(dirname $0)
 source $BASEDIR/inc_msg.sh
 
 function list_devices(){
-    xrandr | grep connected | cut -d' ' -f 1
+    xrandr | grep " connected" | cut -d' ' -f 1
 }
 function get_device(){
     index=$1
