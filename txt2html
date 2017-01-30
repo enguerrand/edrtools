@@ -1,0 +1,91 @@
+#!/bin/bash
+set -e
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_dependencies.sh
+source $BASEDIR/inc_msg.sh
+set_dependencies recode
+check_dependencies
+
+function print_usage(){
+    cat << EOF
+Usage: $(basename $0) [OPTIONS] FILE1 [FILE..]"
+
+Options:
+    --:
+        Stop processing any further options
+
+    -d,--debug:
+        Run script in debugging mode
+
+    -f,--to-file:
+        Do not print to stdout but create an output file for each input file
+        and append the extension .html. Existing files are overwritten!
+
+    -h,--help:
+        Print this help
+
+    -p,--paragraph-elem:
+        Takes an additional string argument to specify the html element that
+        is used to wrap lines. Default: 'p'
+EOF
+}
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+    print_usage
+    exit 0
+fi
+ARGS=""
+P="p"
+TO_FILE="n"
+while [ $# -gt 0 ];do
+    if [ "x$NO_OPTS" == "xy" ] && [[ "$1" =~ \-.* ]];then
+        ARGS+="$1 "
+    else
+        case $1 in 
+            '--')
+                NO_OPTS="y"
+                ;;
+            '-d'|'--debug')
+                set -xe
+                ;;
+            '-f'|'--to-file')
+                TO_FILE="y"
+                ;;
+            '-h'|'--help')
+                print_usage
+                exit 0
+                ;;
+            '-p'|'--paragraph-elem')
+                shift
+                [ $# -gt 0 ] || abort "-p option takes an argument!"
+                P=${1}
+                ;;
+            *)
+                ARGS+="$1 "
+                ;;
+        esac
+    fi
+    shift
+done
+[ -z "$P" ] && abort "-p option takes an argument!"
+[[ "$P" =~ $\-.* ]] && abort "-p option takes an argument!"
+[ -z "$ARGS" ] && abort "Arguments missing!"
+
+function recode_file(){
+    local _file="$1"
+    recode -p  utf8..html <"${_file}"  >/dev/stdout
+}
+
+
+for INPUT in ${ARGS}; do
+    if [ "x${TO_FILE}" == "xy" ];then
+        OUT="${INPUT}.html"
+        echo "##### Processing file ${INPUT} (=> ${OUT}) #####"
+    else
+        OUT="/dev/stdout"
+        echo "##### Processing file ${INPUT} #####"
+    fi
+    recode_file "${INPUT}" | \
+        grep -v "^$" | \
+        sed -e "s/^/<${P}>/g" -e "s/$/<\/${P}>/g" \
+        >${OUT}
+done
