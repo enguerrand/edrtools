@@ -1,0 +1,20 @@
+#!/bin/bash
+set -e
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+function print_usage(){
+    cat << EOF
+Usage: $(basename $0) [size]
+
+Provide size with unit. E.g. 100m for 100MB
+EOF
+}
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+    print_usage
+    exit 0
+fi
+SIZE=$1
+[ -z "${SIZE}" ] && abort "Parameter \"size\" missing!"
+DIR=$(mktemp -d)
+mount -t tmpfs -o size=${SIZE} tmpfs ${DIR}
+echo $DIR
