@@ -1,0 +1,97 @@
+#!/bin/bash
+set -e
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_dependencies.sh
+source $BASEDIR/inc_msg.sh
+function print_usage(){
+    cat << EOF
+Usage: $(basename $0) [OPTIONS]"
+
+With the default options, this streams the input from webcam and microphone to
+http://localhost:8080/stream.wmv
+The resulting stream can be opened e.g. using mplayer.
+
+Options:
+    --:
+        Stop processing any further options
+
+    -a,--audio-device:
+        Use the audio device give as next argument. Default: 'alsa://hw:1,0'
+
+    -c,--caching:
+        Use the following argument as caching value. Default: 300
+
+    -d,--debug:
+        Run script in debugging mode
+
+    -p,--port:
+        Stream to the port given as next argument. Default: 8080
+
+    -u,--url:
+        Make the stream available under the url given as the next argument. 
+        Default: stream.wmv 
+
+    -v,--video-device:
+        Use the viceo device give as next argument. Default: '/dev/video0'
+
+    -h,--help:
+        Print this help
+EOF
+}
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+    print_usage
+    exit 0
+fi
+set_dependencies cvlc
+check_dependencies
+VIDEO_DEVICE='/dev/video0'
+AUDIO_DEVICE='alsa://hw:1,0'
+CACHING=300
+URL="stream.wmv"
+PORT=8080
+ARGS=""
+while [ $# -gt 0 ];do
+    if [ "x$NO_OPTS" == "xy" ] && [[ "$1" =~ \-.* ]];then
+        ARGS+="$1 "
+    else
+        case $1 in 
+            '--')
+                NO_OPTS="y"
+                ;;
+            '-a'|'--audio-device')
+                shift
+                AUDIO_DEVICE=$1
+                ;;
+            '-c'|'--caching')
+                shift
+                CACHING=$1
+                ;;
+            '-d'|'--debug')
+                set -xe
+                ;;
+            '-h'|'--help')
+                print_usage
+                exit 0
+                ;;
+            '-p'|'--port')
+                shift
+                PORT=$1
+                ;;
+            '-u'|'--url')
+                shift
+                URL=$1
+                ;;
+            '-v'|'--video-device')
+                shift
+                VIDEO_DEVICE=$1
+                ;;
+            *)
+                ARGS+="$1 "
+                ;;
+        esac
+    fi
+    shift
+done
+cvlc v4l2://${VIDEO_DEVICE} :v4l2-standard= :input-slave=${AUDIO_DEVICE} \
+    :live-caching=${CACHING} \
+    :sout="#transcode{vcodec=WMV2,vb=800,scale=1,acodec=wma2,ab=128,channels=2,samplerate=44100}:http{dst=:${PORT}/${URL}}" :sout-keep
