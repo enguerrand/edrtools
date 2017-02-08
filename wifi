@@ -1,0 +1,123 @@
+#!/bin/bash
+set -e
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_dependencies.sh
+set_dependencies wpa_supplicant iwconfig
+function print_usage(){
+    cat << EOF
+Usage: $(basename $0) [OPTIONS]"
+
+Options:
+    --:
+        Stop processing any further options
+
+    -d,--debug:
+        Run script in debugging mode
+
+    -D,--driver
+        Use driver provided as next argument
+
+    -h,--help:
+        Print this help
+
+    -i,--iface
+        Use interface provided as next argument
+
+    -c,--config
+        Only print generated wpa_supplicant config 
+        instead of running wpa_supplicant
+
+    -p,--passphrase
+        Use passphrase provided as next argument
+
+EOF
+    print_dependencies
+}
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+    print_usage
+    exit 0
+fi
+
+function auto_detect_iface(){
+    iwconfig 2>/dev/null | grep -v "^ .*\|^$" | cut -d' ' -f 1
+}
+
+function print_wpa_config(){
+	local _ssid=$1
+	local _psk=$2
+cat << EOF
+# /etc/wpa_supplicant/wpa_supplicant.conf
+ctrl_interface=/run/wpa_supplicant
+ctrl_interface_group=wheel
+eapol_version=1
+ap_scan=1
+fast_reauth=1
+update_config=1
+
+# networks
+network={
+        ssid="${_ssid}"
+EOF
+if [ -n "${_psk}" ]; then
+cat << EOF
+        psk="${_psk}"
+        key_mgmt=WPA-PSK
+EOF
+fi
+echo "}"
+}
+
+while [ $# -gt 0 ];do
+    if [ "x$NO_OPTS" == "xy" ] && [[ "$1" =~ \-.* ]];then
+        ARGS+="$1 "
+    else
+        case $1 in 
+            '--')
+                NO_OPTS="y"
+                ;;
+            '-c'|'--config')
+                CONFIG_ONLY="y"
+                ;;
+            '-d'|'--debug')
+                set -xe
+                ;;
+            '-D'|'--driver')
+                shift
+                DRIVER=$1
+                ;;
+            '-h'|'--help')
+                print_usage
+                exit 0
+                ;;
+            '-i'|'--iface')
+                shift
+                IFACE=$1
+                ;;
+            '-p'|'--passphrase')
+                shift
+                PASSWORD=$1
+                ;;
+            *)
+                [ -z "${SSID}" ] || abort "Too many parameters!"
+                SSID="$1"
+                ;;
+        esac
+    fi
+    shift
+done
+[ -z "${SSID}" ] && abort "Argument missing: SSID"
+if [ -z "${IFACE}" ] && [ -z "${CONFIG_ONLY}" ];then
+    echo "Interface name not provided. Autodetecting..."
+    IFACE=$(auto_detect_iface)
+    echo "... will use ${IFACE}"
+fi
+[ -z "${PASSWORD}" ] && read -p "Passphrase [None]: " PASSWORD 
+if [ -n "${CONFIG_ONLY}" ]; then
+    echo " "
+    print_wpa_config ${SSID} ${PASSWORD}
+    exit 0
+fi
+DRIVER_ARG=""
+[ -n "${DRIVER}" ] && DRIVER_ARG="-D ${DRIVER}"
+wpa_supplicant -i ${IFACE} -c <(print_wpa_config ${SSID} ${PASSWORD}) ${DRIVER_ARG} 
+
