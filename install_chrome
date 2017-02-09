@@ -1,0 +1,45 @@
+#!/bin/bash
+set -e
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_dependencies.sh
+set_dependencies wget dpkg
+function print_usage(){
+    cat << EOF
+Usage: $(basename $0) 
+
+Options:
+    -h,--help:
+        Print this help
+
+EOF
+    print_dependencies
+}
+
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+    print_usage
+    exit 0
+fi
+INSTALL_DIR=/opt/google/
+BUILD_DIR=/tmp/google-chrome
+PKG_NAME=google-chrome-stable_current_amd64.deb
+PKG_URL="https://dl.google.com/linux/direct/$PKG_NAME"
+mkdir -p $BUILD_DIR
+rm -rf $BUILD_DIR/*
+cd $BUILD_DIR
+wget $PKG_URL
+dpkg -X $PKG_NAME .
+VERSION=$(zcat  $(find . -name changelog.gz) | grep googlesource | grep -o "[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+")
+[ -e "${INSTALL_DIR}/${VERSION}" ] && abort "Version ${VERSION} already installed!"
+read -p "Install version $VERSION ? [yN] " USER_INPUT
+[[ "${USER_INPUT}" =~ [YyJj] ]] || exit
+mv "./opt/google/chrome" "${INSTALL_DIR}/${VERSION}"
+cd $INSTALL_DIR
+rm -f ${INSTALL_DIR}/chrome && ln -s ./${VERSION} chrome
+print_ok "Chrome installed successfully!" 
+cat << EOF
+Run it with
+
+    /opt/google/chrome/chrome
+
+EOF
+
