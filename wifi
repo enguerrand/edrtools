@@ -5,7 +5,7 @@ source $BASEDIR/inc_dependencies.sh
 set_dependencies wpa_supplicant iwconfig
 function print_usage(){
     cat << EOF
-Usage: $(basename $0) [OPTIONS]"
+Usage: $(basename $0) [OPTIONS] SSID
 
 Options:
     --:
@@ -107,9 +107,9 @@ while [ $# -gt 0 ];do
 done
 [ -z "${SSID}" ] && abort "Argument missing: SSID"
 if [ -z "${IFACE}" ] && [ -z "${CONFIG_ONLY}" ];then
-    echo "Interface name not provided. Autodetecting..."
     IFACE=$(auto_detect_iface)
-    echo "... will use ${IFACE}"
+    [ -z "${IFACE}" ] && abort "No wireless-capable network interface found!"
+    echo "Interface name not provided. Autodetected ${IFACE}"
 fi
 [ -z "${PASSWORD}" ] && read -p "Passphrase [None]: " PASSWORD 
 if [ -n "${CONFIG_ONLY}" ]; then
