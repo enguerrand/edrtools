@@ -2,10 +2,12 @@
 set -e
 BASEDIR=$(dirname $0)
 source $BASEDIR/inc_dependencies.sh
-set_dependencies wpa_supplicant iwconfig
+set_dependencies dhcpcd iw wpa_supplicant
 function print_usage(){
     cat << EOF
-Usage: $(basename $0) [OPTIONS] SSID
+Usage: $(basename $0) [OPTIONS] [SSID]
+
+If SSID is not provided a multiple choice dialog will allow you to select one.
 
 Options:
     --:
@@ -30,6 +32,10 @@ Options:
     -p,--passphrase
         Use passphrase provided as next argument
 
+    -x,--exit
+        Disconnect wifi. Leads to all other options
+        except -d being ignored
+
 EOF
     print_dependencies
 }
@@ -38,8 +44,13 @@ if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
     exit 0
 fi
 
+function print_reachable_ssids(){
+    iw dev wlp2s0 scan ap-force | grep -o "SSID: .*" | cut -d":" -f 2 | tr -d ' '
+}
+
+
 function auto_detect_iface(){
-    iwconfig 2>/dev/null | grep -v "^ .*\|^$" | cut -d' ' -f 1
+    iw dev | grep Interface | sed -e 's/.*Interface \(.*\)/\1/' | head -n 1
 }
 
 function print_wpa_config(){
@@ -97,6 +108,10 @@ while [ $# -gt 0 ];do
                 shift
                 PASSWORD=$1
                 ;;
+            '-x'|'--exit')
+                killall wpa_supplicant
+                exit 0
+                ;;
             *)
                 [ -z "${SSID}" ] || abort "Too many parameters!"
                 SSID="$1"
@@ -105,13 +120,20 @@ while [ $# -gt 0 ];do
     fi
     shift
 done
-[ -z "${SSID}" ] && abort "Argument missing: SSID"
+if [ -z "${SSID}" ]; then
+    echo "Select wifi network to connect to:"
+    select SSID in $(print_reachable_ssids); do
+        [ -z "${SSID}" ] || break
+        echo "Invalid choice" >&2
+    done
+fi
+[ -z "${SSID}" ] && abort "No SSID provided"
 if [ -z "${IFACE}" ] && [ -z "${CONFIG_ONLY}" ];then
     IFACE=$(auto_detect_iface)
     [ -z "${IFACE}" ] && abort "No wireless-capable network interface found!"
     echo "Interface name not provided. Autodetected ${IFACE}"
 fi
-[ -z "${PASSWORD}" ] && read -p "Passphrase [None]: " PASSWORD 
+[ -z "${PASSWORD}" ] && read -p "Passphrase for ${SSID} [None]: " PASSWORD
 if [ -n "${CONFIG_ONLY}" ]; then
     echo " "
     print_wpa_config ${SSID} ${PASSWORD}
@@ -119,5 +141,5 @@ if [ -n "${CONFIG_ONLY}" ]; then
 fi
 DRIVER_ARG=""
 [ -n "${DRIVER}" ] && DRIVER_ARG="-D ${DRIVER}"
-wpa_supplicant -i ${IFACE} -c <(print_wpa_config ${SSID} ${PASSWORD}) ${DRIVER_ARG} 
-
+wpa_supplicant -B -i ${IFACE} -c <(print_wpa_config ${SSID} ${PASSWORD}) ${DRIVER_ARG}
+dhcpcd
