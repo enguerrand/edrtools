@@ -2,41 +2,46 @@
 set -e
 BASEDIR=$(dirname $0)
 source $BASEDIR/inc_dependencies.sh
-set_dependencies dhcpcd iw wpa_supplicant
+set_dependencies dhcpcd iw wpa_passphrase wpa_supplicant
 function print_usage(){
-    cat << EOF
-Usage: $(basename $0) [OPTIONS] [SSID]
+    cat <<- EOF
+	Usage: $(basename $0) [OPTIONS] [SSID]
 
-If SSID is not provided a multiple choice dialog will allow you to select one.
+	If SSID is not provided a multiple choice dialog will allow you to select one.
 
-Options:
-    --:
-        Stop processing any further options
+	Options:
+	    --:
+	        Stop processing any further options
 
-    -d,--debug:
-        Run script in debugging mode
+	    -c,--config
+	        Only print generated wpa_supplicant config
+	        instead of running wpa_supplicant
+            Also see -n
 
-    -D,--driver
-        Use driver provided as next argument
+	    -d,--debug:
+	        Run script in debugging mode
 
-    -h,--help:
-        Print this help
+	    -D,--driver
+	        Use driver provided as next argument
 
-    -i,--iface
-        Use interface provided as next argument
+	    -h,--help:
+	        Print this help
 
-    -c,--config
-        Only print generated wpa_supplicant config 
-        instead of running wpa_supplicant
+	    -i,--iface
+	        Use interface provided as next argument
 
-    -p,--passphrase
-        Use passphrase provided as next argument
+	    -n,--network
+	        Only print network section of  generated wpa_supplicant
+	        config instead of running wpa_supplicant
 
-    -x,--exit
-        Disconnect wifi. Leads to all other options
-        except -d being ignored
+	    -p,--passphrase
+	        Use passphrase provided as next argument
 
-EOF
+	    -x,--exit
+	        Disconnect wifi. Leads to all other options
+	        except -d being ignored
+
+	EOF
     print_dependencies
 }
 if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
@@ -53,29 +58,27 @@ function auto_detect_iface(){
     iw dev | grep Interface | sed -e 's/.*Interface \(.*\)/\1/' | head -n 1
 }
 
+function print_network(){
+	local _ssid=$1
+	local _psk=$2
+	wpa_passphrase ${_ssid} ${_psk} | grep -v "#psk"
+}
+
 function print_wpa_config(){
 	local _ssid=$1
 	local _psk=$2
-cat << EOF
-# /etc/wpa_supplicant/wpa_supplicant.conf
-ctrl_interface=/run/wpa_supplicant
-ctrl_interface_group=wheel
-eapol_version=1
-ap_scan=1
-fast_reauth=1
-update_config=1
+	cat <<- EOF
+	# /etc/wpa_supplicant/wpa_supplicant.conf
+	ctrl_interface=/run/wpa_supplicant
+	ctrl_interface_group=wheel
+	eapol_version=1
+	ap_scan=1
+	fast_reauth=1
+	update_config=1
 
-# networks
-network={
-        ssid="${_ssid}"
-EOF
-if [ -n "${_psk}" ]; then
-cat << EOF
-        psk="${_psk}"
-        key_mgmt=WPA-PSK
-EOF
-fi
-echo "}"
+	# networks
+	EOF
+    print_network ${_ssid} ${_psk}
 }
 
 while [ $# -gt 0 ];do
@@ -103,6 +106,9 @@ while [ $# -gt 0 ];do
             '-i'|'--iface')
                 shift
                 IFACE=$1
+                ;;
+            '-n'|'--network')
+                NETWORK_ONLY="y"
                 ;;
             '-p'|'--passphrase')
                 shift
@@ -134,6 +140,11 @@ if [ -z "${IFACE}" ] && [ -z "${CONFIG_ONLY}" ];then
     echo "Interface name not provided. Autodetected ${IFACE}"
 fi
 [ -z "${PASSWORD}" ] && read -p "Passphrase for ${SSID} [None]: " PASSWORD
+if [ -n "${NETWORK_ONLY}" ]; then
+    echo " "
+    print_network ${SSID} ${PASSWORD}
+    exit 0
+fi
 if [ -n "${CONFIG_ONLY}" ]; then
     echo " "
     print_wpa_config ${SSID} ${PASSWORD}
