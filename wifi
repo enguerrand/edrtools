@@ -62,7 +62,15 @@ function auto_detect_iface(){
 function print_network(){
 	local _ssid=$1
 	local _psk=$2
-	wpa_passphrase ${_ssid} ${_psk} | grep -v "#psk"
+    if [ -z "${_psk}" ];then
+		cat <<- EOF
+		network={
+		    ssid="${_ssid}"
+		}
+		EOF
+    else
+	    wpa_passphrase ${_ssid} ${_psk} | grep -v "#psk"
+    fi
 }
 
 function print_wpa_config(){
