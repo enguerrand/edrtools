@@ -2,7 +2,7 @@
 set -e
 BASEDIR=$(dirname $0)
 source $BASEDIR/inc_dependencies.sh
-set_dependencies dhcpcd iw wpa_passphrase wpa_supplicant
+set_dependencies dhcpcd ip iw wpa_passphrase wpa_supplicant
 function print_usage(){
     cat <<- EOF
 	Usage: $(basename $0) [OPTIONS] [SSID]
@@ -50,7 +50,8 @@ if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
 fi
 
 function print_reachable_ssids(){
-    iw dev wlp2s0 scan ap-force | grep -o "SSID: .*" | cut -d":" -f 2 | tr -d ' '
+    local _iface=$1
+    iw dev ${_iface} scan ap-force | grep -o "SSID: .*" | cut -d":" -f 2 | tr -d ' '
 }
 
 
@@ -126,19 +127,20 @@ while [ $# -gt 0 ];do
     fi
     shift
 done
+if [ -z "${IFACE}" ];then
+    IFACE=$(auto_detect_iface)
+    [ -z "${IFACE}" ] && abort "No wireless-capable network interface found!"
+    echo "Interface name not provided. Autodetected ${IFACE}"
+fi
+ip link set ${IFACE} up || abort "Could not bring up interface ${IFACE}"
 if [ -z "${SSID}" ]; then
     echo "Select wifi network to connect to:"
-    select SSID in $(print_reachable_ssids); do
+    select SSID in $(print_reachable_ssids ${IFACE}); do
         [ -z "${SSID}" ] || break
         echo "Invalid choice" >&2
     done
 fi
 [ -z "${SSID}" ] && abort "No SSID provided"
-if [ -z "${IFACE}" ] && [ -z "${CONFIG_ONLY}" ];then
-    IFACE=$(auto_detect_iface)
-    [ -z "${IFACE}" ] && abort "No wireless-capable network interface found!"
-    echo "Interface name not provided. Autodetected ${IFACE}"
-fi
 [ -z "${PASSWORD}" ] && read -p "Passphrase for ${SSID} [None]: " PASSWORD
 if [ -n "${NETWORK_ONLY}" ]; then
     echo " "
