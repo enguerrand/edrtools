@@ -18,6 +18,10 @@ function print_usage(){
 	        instead of running wpa_supplicant
             Also see -n
 
+	    -C,--config-from
+	        Use wpa_supplicant configuration file supplied
+	        as the next argument
+
 	    -d,--debug:
 	        Run script in debugging mode
 
@@ -73,6 +77,15 @@ function print_network(){
     fi
 }
 
+function use_wpa_config(){
+	local _ssid=$1
+    local _config=$2
+    grep -Pzo '(?s).*# Add here your networks.' $_config
+    printf "\n\n"
+    grep -Pzo '(?s)network=[^}]*'${_ssid}'.*?}' $_config
+    printf "\n\n"
+}
+
 function print_wpa_config(){
 	local _ssid=$1
 	local _psk=$2
@@ -100,6 +113,10 @@ while [ $# -gt 0 ];do
                 ;;
             '-c'|'--config')
                 CONFIG_ONLY="y"
+                ;;
+            '-C'|'--config-from')
+                shift
+                CONFIG_FILE=$1
                 ;;
             '-d'|'--debug')
                 set -xe
@@ -149,6 +166,13 @@ if [ -z "${SSID}" ]; then
     done
 fi
 [ -z "${SSID}" ] && abort "No SSID provided"
+DRIVER_ARG=""
+[ -n "${DRIVER}" ] && DRIVER_ARG="-D ${DRIVER}"
+if [ -n "${CONFIG_FILE}" ];then
+    wpa_supplicant -B -i ${IFACE} -c <(use_wpa_config ${SSID} ${CONFIG_FILE}) ${DRIVER_ARG}
+    dhcpcd
+    exit 0
+fi
 [ -z "${PASSWORD}" ] && read -p "Passphrase for ${SSID} [None]: " PASSWORD
 if [ -n "${NETWORK_ONLY}" ]; then
     echo " "
@@ -160,7 +184,5 @@ if [ -n "${CONFIG_ONLY}" ]; then
     print_wpa_config ${SSID} ${PASSWORD}
     exit 0
 fi
-DRIVER_ARG=""
-[ -n "${DRIVER}" ] && DRIVER_ARG="-D ${DRIVER}"
 wpa_supplicant -B -i ${IFACE} -c <(print_wpa_config ${SSID} ${PASSWORD}) ${DRIVER_ARG}
 dhcpcd
