@@ -22,6 +22,13 @@ CTI_MERGEOPTS=""
 # Target directory. 
 BACKUP_DIR=/var/cti/data/
 #
+# Ignore relative paths to the backup directory that match the 
+# given pattern in checks for missing local files.
+# The primary intention for this feature is to be able to 
+# use version control systems (vcs) (e.g. git) in the backup directory
+# without cti detecting the files created by the vcs as missing.
+#BACKUP_DIR_IGNORE_PATTERN=^/\.git
+#
 # Delay in seconds between a printed message and opening the
 # file in an editor
 MSG_DELAY=1.0
@@ -301,6 +308,8 @@ function check_file () {
         sleep $delay
         return
     elif [ ! -e $path ] && [ -e ${BACKUP_DIR}/$path ]; then
+        [ -n "$BACKUP_DIR_IGNORE_PATTERN" ] && [[ "$path" =~ $BACKUP_DIR_IGNORE_PATTERN ]] && return
+        #[[ "$path" =~ $BACKUP_DIR_IGNORE_PATTERN ]] && return
         echo -e "[\e[1;31m!!\e[m] MISSING       $path"
         [ "x$sync" == "xy" ] && handle_diverged_file $path  "y"
         return
@@ -348,6 +357,7 @@ function export_globals () {
     export CTI_MERGETOOL
     export CTI_MERGEOPTS
     export BACKUP_DIR
+    [ -n "$BACKUP_DIR_IGNORE_PATTERN" ] && export BACKUP_DIR_IGNORE_PATTERN
     export MSG_DELAY
     export -f abort
     export -f print_ok
