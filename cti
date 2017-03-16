@@ -20,7 +20,7 @@ CTI_MERGETOOL=/usr/bin/vimdiff
 CTI_MERGEOPTS=""
 #
 # Target directory. 
-BACKUP_DIR=/var/cti/data/
+CTI_HOME=/var/cti
 #
 # Ignore relative paths to the backup directory that match the 
 # given pattern in checks for missing local files.
@@ -43,11 +43,18 @@ MSG_DELAY=1.0
 BASEDIR=$(dirname $0)
 source $BASEDIR/inc_msg.sh
 #
+# Check config file compatibility
+[ -z "${BACKUP_DIR}" ] || abort "Setting BACKUP_DIR no longer available. Use CTI_HOME instead!"
+#
 # Check toolchain
 which ${CTI_DIFFTOOL:=diff} > /dev/null 2>&1  || CTI_DIFFTOOL=no_diff
 #
 which ${CTI_MERGETOOL:=vimdiff} > /dev/null 2>&1 || CTI_MERGETOOL=no_merge
 #
+#
+# Compute derived variable names
+CTI_FILES_DIR=${CTI_HOME}/data/
+CTI_SYMLINKS_DIR=${CTI_HOME}/symlinks/
 
 function print_usage(){
 cat << EOF
@@ -171,13 +178,9 @@ function fullpath () {
 function backup_file () {
     local file=$1
     [ -d "$file" ] && return
-    if [ ! -f "$file" ]; then
-        print_error "Cannot backup non-existent file $file"
-        return
-    fi
     local path=$(fullpath $file)
     local temp_dir=$(mktemp -d)
-    rsync -ptgolR -T $temp_dir -- $path $BACKUP_DIR/ && \
+    rsync -ptgolR -T $temp_dir -- $path $CTI_FILES_DIR/ && \
     print_ok "File $file synced with backup successfully!"
     rm -rf $temp_dir
 }
@@ -187,30 +190,30 @@ function restore_file () {
     [ -d "$file" ] && return
     local path=$(fullpath $file)
     local temp_dir=$(mktemp -d)
-    rsync -ptgol -T $temp_dir -- $BACKUP_DIR/$path $path
+    rsync -ptgol -T $temp_dir -- $CTI_FILES_DIR/$path $path
     rm -rf -- $temp_dir
 }
 
 function check_backup_dir () {
-    [ -z "$BACKUP_DIR" ] && abort "The BACKUP_DIR variable is not set!"
-    [ "x$BACKUP_DIR" = "x/" ] && abort "The BACKUP_DIR variable is not valid!"
+    [ -z "$CTI_HOME" ] && abort "The CTI_HOME variable is not set!"
+    [ "x$CTI_HOME" = "x/" ] && abort "The CTI_HOME variable is not valid!"
 }
 
 function clean_backup_dir () {
-    [ $UID -eq 0 ] && find "$BACKUP_DIR" -type d -empty -delete
+    [ $UID -eq 0 ] && find "$CTI_HOME" -type d -empty -delete
 }
 
 function untrack_file () {
     check_backup_dir
     local file=$1
-    rm -i -- ${BACKUP_DIR}$(fullpath ${file})
+    rm -i -- ${CTI_FILES_DIR}$(fullpath ${file})
     clean_backup_dir
 }
 
 function delete_file_in_backup () {
     check_backup_dir
     local full_path_to_file=$1
-    rm -i -- ${BACKUP_DIR}/${full_path_to_file}
+    rm -i -- ${CTI_FILES_DIR}/${full_path_to_file}
     clean_backup_dir
 }
 
@@ -227,7 +230,7 @@ function handle_diverged_file () {
         echo "File is present in the backup but not locally!"
     else
         echo "Changes:"
-        ${CTI_DIFFTOOL} ${CTI_DIFFOPTS} $BACKUP_DIR/$file_abs_path $file_abs_path  
+        ${CTI_DIFFTOOL} ${CTI_DIFFOPTS} $CTI_FILES_FIR/$file_abs_path $file_abs_path  
     fi
     echo ""
     local selection=0
@@ -265,7 +268,7 @@ function handle_diverged_file () {
 
     case "$selection" in 
         'Open mergetool')
-            ${CTI_MERGETOOL} ${CTI_MERGEOPTS} $file_abs_path $BACKUP_DIR/$file_abs_path
+            ${CTI_MERGETOOL} ${CTI_MERGEOPTS} $file_abs_path $CTI_FILES_DIR/$file_abs_path
             ;;
         'Restore backup')
             restore_file $file_abs_path
@@ -296,28 +299,27 @@ function check_file () {
     local sync=${3:-y}
     local full_path=$(fullpath $file)
     local path=$(echo $full_path | \
-        sed -e s#^$BACKUP_DIR##  | \
+        sed -e s#^$CTI_FILES_DIR##  | \
         sed -e 's#^\([^/]\)#/\1#g') # prepend slash if needed
     
-    if [ ! -e $path ] && [ ! -e ${BACKUP_DIR}/$path ]; then
+    if [ ! -e $path ] && [ ! -e ${CTI_FILES_DIR}/$path ]; then
         echo -e "[\e[1;33m??\e[m] NEW           $path"
         sleep $delay
         return
-    elif [ -e $path ] && [ ! -e ${BACKUP_DIR}/$path ]; then
+    elif [ -e $path ] && [ ! -e ${CTI_FILES_DIR}/$path ]; then
         echo -e "[\e[1;33m??\e[m] UNTRACKED     $path"
         sleep $delay
         return
-    elif [ ! -e $path ] && [ -e ${BACKUP_DIR}/$path ]; then
+    elif [ ! -e $path ] && [ -e ${CTI_FILES_DIR}/$path ]; then
         [ -n "$BACKUP_DIR_IGNORE_PATTERN" ] && [[ "$path" =~ $BACKUP_DIR_IGNORE_PATTERN ]] && return
-        #[[ "$path" =~ $BACKUP_DIR_IGNORE_PATTERN ]] && return
         echo -e "[\e[1;31m!!\e[m] MISSING       $path"
         [ "x$sync" == "xy" ] && handle_diverged_file $path  "y"
         return
-    elif [ -e $path ] && [ -e ${BACKUP_DIR}/$path ]; then
+    elif [ -e $path ] && [ -e ${CTI_FILES_DIR}/$path ]; then
         [ -d $path ] && return
-        [ -d ${BACKUP_DIR}/$path ] && return
+        [ -d ${CTI_FILES_DIR}/$path ] && return
 
-        local stored_checksum=$(checksum ${BACKUP_DIR}/${path}) 
+        local stored_checksum=$(checksum ${CTI_FILES_DIR}/${path}) 
         local checksum_before=$(checksum ${path})
         if [ "$stored_checksum" != "$checksum_before" ];then
             echo -e "[\e[1;31m!!\e[m] OUT OF SYNC   $path"
@@ -333,9 +335,9 @@ function edit_file () {
     local file=$1
     local full_path=$(fullpath $file)
     local path=$(echo $full_path | \
-        sed -e s#^$BACKUP_DIR##  | \
+        sed -e s#^$CTI_FILES_DIR##  | \
         sed -e 's#^\([^/]\)#/\1#g') # prepend slash if needed
-    if [ "x$NO_AUTO_ADD" == "xy" ] && [ ! -e ${BACKUP_DIR}/$path ]; then
+    if [ "x$NO_AUTO_ADD" == "xy" ] && [ ! -e ${CTI_FILES_DIR}/$path ]; then
         ${CTI_EDITOR:-${EDITOR:-vi}} $file
     else
         check_file $file $MSG_DELAY "y"
@@ -356,7 +358,9 @@ function export_globals () {
     export CTI_DIFFOPTS
     export CTI_MERGETOOL
     export CTI_MERGEOPTS
-    export BACKUP_DIR
+    export CTI_HOME
+    export CTI_FILES_DIR
+    export CTI_SYMLINKS_DIR
     [ -n "$BACKUP_DIR_IGNORE_PATTERN" ] && export BACKUP_DIR_IGNORE_PATTERN
     export MSG_DELAY
     export -f abort
@@ -385,9 +389,9 @@ function check_all () {
     local sync=${1:="n"}
     check_backup_dir
     export_globals
-    find $BACKUP_DIR -type f -readable -exec bash -c "check_file {} 0 $sync" \;  
+    find $CTI_FILES_DIR -type f -readable -exec bash -c "check_file {} 0 $sync" \;  
     if [ $UID -ne 0 ];then
-        local unreadable=$(find $BACKUP_DIR ! -readable | wc -l)
+        local unreadable=$(find $CTI_FILES_DIR ! -readable | wc -l)
         [ $unreadable -gt 0 ] && print_warning "Some files or folders could not be read. You may want to re-run cti with higher privileges."
     fi
 }
@@ -468,12 +472,14 @@ done
 
 ########## CHECK BACKUP_DIR AND PERMISSIONS ##########
 
-if [ ! -d "${BACKUP_DIR}" ]; then
-    mkdir -p "${BACKUP_DIR}" || \
-    abort "The backup directory ${BACKUP_DIR} does not yet exist. Backup at least one file as root to fix this"
-fi
+for BCK_DIR in {$CTI_FILES_DIR,$CTI_SYMLINKS_DIR}; do
+    if [ ! -d "${BCK_DIR}" ]; then
+        mkdir -p "${BCK_DIR}" || \
+        abort "The backup directory ${BCK_DIR} does not yet exist. Backup at least one file as root to fix this"
+    fi
+done
 
-if [ $UID -ne 0 ] && [ ! -w "${BACKUP_DIR}/${HOME}" ];then
+if [ $UID -ne 0 ] && [ ! -w "${CTI_FILES_DIR}/${HOME}" ];then
     print_error "User $USER does not have a writable home directory in the backup folder"
     abort "Backup at least one file in this user's home dir as root to fix this"
 fi
@@ -499,9 +505,13 @@ fi
 ############### MAIN SWITCH ##########################
 
 for FILE in $FILES; do
+    if [ ! -f "$FILE" ]; then
+        print_warning "Ignoring non-existent file $FILE"
+        continue
+    fi
     case $ACTION in
         'add')
-            if [ -f $BACKUP_DIR/$(fullpath $FILE) ]; then
+            if [ -f $CTI_FILES_DIR/$(fullpath $FILE) ]; then
                 echo "File $FILE is already being tracked!"
             else
                 backup_file $FILE
