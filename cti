@@ -156,6 +156,8 @@ function checksum () {
     local file=$1
     if [ -z "$file" ] || [ ! -r "$file" ];then
         echo "0"
+    elif [ -L "$file" ];then
+        md5sum -- <(readlink $file) | cut -d' ' -f 1
     else
         md5sum -- $file | cut -d' ' -f 1
     fi
@@ -190,7 +192,10 @@ function backup_file () {
     local path=$(fullpath $file)
     if [ -L ${file} ]; then
         local symlink_path=$(readlink ${file})
+        local cwd="$PWD"
+        cd $(dirname $path)
         check_file ${symlink_path} 0 "y"
+        cd "$cwd"
         mkdir -p $(dirname $CTI_SYMLINKS_DIR/${path})
         echo $symlink_path > $CTI_SYMLINKS_DIR/${path}
         print_ok "Symlink $file (pointing to $symlink_path) synced with backup successfully!"
@@ -206,9 +211,18 @@ function restore_file () {
     local file=$1
     [ -d "$file" ] && return
     local path=$(fullpath $file)
-    local temp_dir=$(mktemp -d)
-    rsync -ptgol -T $temp_dir -- $CTI_FILES_DIR/$path $path
-    rm -rf -- $temp_dir
+    if [ -f ${CTI_SYMLINKS_DIR}/$path ]; then
+        local symlink_path=$(cat ${CTI_SYMLINKS_DIR}/$path)
+        local cwd="$PWD"
+        cd $(dirname $path)
+        ln -i -s -- $symlink_path $(basename $path)
+        check_file ${symlink_path} 0 "y"
+        cd "$cwd"
+    else
+        local temp_dir=$(mktemp -d)
+        rsync -ptgol -T $temp_dir -- $CTI_FILES_DIR/$path $path
+        rm -rf -- $temp_dir
+    fi
 }
 
 function check_backup_dir () {
@@ -251,7 +265,11 @@ function handle_diverged_file () {
         echo "File is not currently being tracked!"
     else
         echo "Changes:"
-        ${CTI_DIFFTOOL} ${CTI_DIFFOPTS} $CTI_FILES_FIR/$file_abs_path $file_abs_path
+        if [ -L $file_abs_path ];then
+            ${CTI_DIFFTOOL} ${CTI_DIFFOPTS} $CTI_SYMLINKS_DIR/$file_abs_path <(readlink $file_abs_path)
+        else
+            ${CTI_DIFFTOOL} ${CTI_DIFFOPTS} $CTI_FILES_DIR/$file_abs_path $file_abs_path
+        fi
     fi
     echo ""
     local selection=0
@@ -280,6 +298,11 @@ function handle_diverged_file () {
                 done
             elif [ "x$untracked" == "xy" ];then
                 select selection in {"Delete locally","Start tracking","Ignore","Abort"}; do
+                    [ -z "$selection" ] || break
+                    print_warning "Invalid choice!"
+                done
+            elif [ -L $file_abs_path ];then
+                select selection in {"Restore backup","Overwrite backup","Untrack file","Ignore","Abort"}; do
                     [ -z "$selection" ] || break
                     print_warning "Invalid choice!"
                 done
@@ -327,15 +350,16 @@ function check_file () {
     local delay=${2:=0}
     local sync=${3:-y}
     local full_path=$(fullpath $file)
+    local backup_root=$(get_backup_root $file)
     local path=$(echo $full_path | \
-        sed -e s#^$CTI_FILES_DIR##  | \
+        sed -e s#^$backup_root##  | \
         sed -e 's#^\([^/]\)#/\1#g') # prepend slash if needed
     
-    if [ ! -e $path ] && [ ! -e ${CTI_FILES_DIR}/$path ]; then
+    if [ ! -e $path ] && [ ! -e ${backup_root}/$path ]; then
         echo -e "[\e[1;33m??\e[m] NEW           $path"
         sleep $delay
         return
-    elif [ -e $path ] && [ ! -e ${CTI_FILES_DIR}/$path ]; then
+    elif [ -e $path ] && [ ! -e ${backup_root}/$path ]; then
         echo -e "[\e[1;33m??\e[m] UNTRACKED     $path"
         if [ "x$sync" == "xy" ]; then
             handle_diverged_file $path  "n" "y"
@@ -343,23 +367,28 @@ function check_file () {
             sleep $delay
         fi
         return
-    elif [ ! -e $path ] && [ -e ${CTI_FILES_DIR}/$path ]; then
+    elif [ ! -e $path ] && [ -e ${backup_root}/$path ]; then
         [ -n "$BACKUP_DIR_IGNORE_PATTERN" ] && [[ "$path" =~ $BACKUP_DIR_IGNORE_PATTERN ]] && return
         echo -e "[\e[1;31m!!\e[m] MISSING       $path"
         [ "x$sync" == "xy" ] && handle_diverged_file $path  "y" "n"
         return
-    elif [ -e $path ] && [ -e ${CTI_FILES_DIR}/$path ]; then
+    elif [ -e $path ] && [ -e ${backup_root}/$path ]; then
         [ -d $path ] && return
-        [ -d ${CTI_FILES_DIR}/$path ] && return
+        [ -d ${backup_root}/$path ] && return
 
-        local stored_checksum=$(checksum ${CTI_FILES_DIR}/${path}) 
+        local stored_checksum=$(checksum ${backup_root}/${path})
         local checksum_before=$(checksum ${path})
         if [ "$stored_checksum" != "$checksum_before" ];then
             echo -e "[\e[1;31m!!\e[m] OUT OF SYNC   $path"
             [ "x$sync" == "xy" ] && handle_diverged_file $path "n" "n"
-        elif [ "x$SUPPRESS_SYNCED" != "xy" ];then
-            echo -e "[\033[00;32mOK\e[m] IN SYNC       $path"
-            sleep $delay
+        else
+            if [ -L $full_path ];then
+                check_file $(readlink $full_path) $delay $sync
+            fi
+            if [ "x$SUPPRESS_SYNCED" != "xy" ];then
+                echo -e "[\033[00;32mOK\e[m] IN SYNC       $path"
+                sleep $delay
+            fi
         fi
     fi
 }
