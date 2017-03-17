@@ -152,12 +152,21 @@ function no_merge () {
     exit -1;
 }
 
-function checksum (){
+function checksum () {
     local file=$1
     if [ -z "$file" ] || [ ! -r "$file" ];then
         echo "0"
     else
         md5sum -- $file | cut -d' ' -f 1
+    fi
+}
+
+function get_backup_root () {
+    local file=$1
+    if [ -L ${file} ]; then
+        echo ${CTI_SYMLINKS_DIR}
+    else
+        echo ${CTI_FILES_DIR}
     fi
 }
 
@@ -179,10 +188,18 @@ function backup_file () {
     local file=$1
     [ -d "$file" ] && return
     local path=$(fullpath $file)
-    local temp_dir=$(mktemp -d)
-    rsync -ptgolR -T $temp_dir -- $path $CTI_FILES_DIR/ && \
-    print_ok "File $file synced with backup successfully!"
-    rm -rf $temp_dir
+    if [ -L ${file} ]; then
+        local symlink_path=$(readlink ${file})
+        backup_file ${symlink_path}
+        mkdir -p $(dirname $CTI_SYMLINKS_DIR/${path})
+        echo $symlink_path > $CTI_SYMLINKS_DIR/${path}
+        print_ok "Symlink $file (pointing to $symlink_path) synced with backup successfully!"
+    else
+        local temp_dir=$(mktemp -d)
+        rsync -ptgolR -T $temp_dir -- $path $CTI_FILES_DIR/ && \
+        rm -rf $temp_dir
+        print_ok "File $file synced with backup successfully!"
+    fi
 }
 
 function restore_file () {
