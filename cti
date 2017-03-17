@@ -237,14 +237,10 @@ function clean_backup_dir () {
 function untrack_file () {
     check_backup_dir
     local file=$1
-    rm -i -- ${CTI_FILES_DIR}$(fullpath ${file})
-    clean_backup_dir
-}
-
-function delete_file_in_backup () {
-    check_backup_dir
-    local full_path_to_file=$1
-    rm -i -- ${CTI_FILES_DIR}/${full_path_to_file}
+    if [ -L $file ];then
+        check_file $(readlink $file) 0 "y"
+    fi
+    rm -i -- $(get_backup_root $file)/$(fullpath ${file})
     clean_backup_dir
 }
 
@@ -322,11 +318,8 @@ function handle_diverged_file () {
         'Restore backup')
             restore_file $file_abs_path
             ;;
-        'Untrack file')
+        'Untrack file'|'Delete in backup')
             untrack_file $file_abs_path
-            ;;
-        'Delete in backup')
-            delete_file_in_backup $file_abs_path
             ;;
         'Delete locally')
             rm -i -- $file_abs_path
@@ -352,7 +345,8 @@ function check_file () {
     local full_path=$(fullpath $file)
     local backup_root=$(get_backup_root $file)
     local path=$(echo $full_path | \
-        sed -e s#^$backup_root##  | \
+        sed -e s#^$CTI_FILES_DIR##  | \
+        sed -e s#^$CTI_SYMLINKS_DIR##  | \
         sed -e 's#^\([^/]\)#/\1#g') # prepend slash if needed
     
     if [ ! -e $path ] && [ ! -e ${backup_root}/$path ]; then
@@ -382,8 +376,8 @@ function check_file () {
             echo -e "[\e[1;31m!!\e[m] OUT OF SYNC   $path"
             [ "x$sync" == "xy" ] && handle_diverged_file $path "n" "n"
         else
-            if [ -L $full_path ];then
-                check_file $(readlink $full_path) $delay $sync
+            if [ -L $path ];then
+                check_file $(readlink $path) $delay $sync
             fi
             if [ "x$SUPPRESS_SYNCED" != "xy" ];then
                 echo -e "[\033[00;32mOK\e[m] IN SYNC       $path"
@@ -398,6 +392,7 @@ function edit_file () {
     local full_path=$(fullpath $file)
     local path=$(echo $full_path | \
         sed -e s#^$CTI_FILES_DIR##  | \
+        sed -e s#^$CTI_SYMLINKS_DIR##  | \
         sed -e 's#^\([^/]\)#/\1#g') # prepend slash if needed
     if [ "x$NO_AUTO_ADD" == "xy" ] && [ ! -e ${CTI_FILES_DIR}/$path ]; then
         ${CTI_EDITOR:-${EDITOR:-vi}} $file
@@ -433,13 +428,13 @@ function export_globals () {
     export -f no_diff
     export -f no_merge
     export -f checksum
+    export -f get_backup_root
     export -f fullpath
     export -f backup_file
     export -f restore_file
     export -f check_backup_dir
     export -f clean_backup_dir
     export -f untrack_file
-    export -f delete_file_in_backup
     export -f remove_file
     export -f handle_diverged_file
     export -f check_file
