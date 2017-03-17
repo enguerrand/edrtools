@@ -190,7 +190,7 @@ function backup_file () {
     local path=$(fullpath $file)
     if [ -L ${file} ]; then
         local symlink_path=$(readlink ${file})
-        backup_file ${symlink_path}
+        check_file ${symlink_path} 0 "y"
         mkdir -p $(dirname $CTI_SYMLINKS_DIR/${path})
         echo $symlink_path > $CTI_SYMLINKS_DIR/${path}
         print_ok "Symlink $file (pointing to $symlink_path) synced with backup successfully!"
@@ -242,12 +242,16 @@ function remove_file () {
 
 function handle_diverged_file () {
     local file_abs_path=$1
-    local missing=${2:="n"}
+    local missing=$2
+    local untracked=$3
+
     if [ "x$missing" == "xy" ];then
         echo "File is present in the backup but not locally!"
+    elif [ "x$untracked" == "xy" ];then
+        echo "File is not currently being tracked!"
     else
         echo "Changes:"
-        ${CTI_DIFFTOOL} ${CTI_DIFFOPTS} $CTI_FILES_FIR/$file_abs_path $file_abs_path  
+        ${CTI_DIFFTOOL} ${CTI_DIFFOPTS} $CTI_FILES_FIR/$file_abs_path $file_abs_path
     fi
     echo ""
     local selection=0
@@ -274,8 +278,13 @@ function handle_diverged_file () {
                     [ -z "$selection" ] || break
                     print_warning "Invalid choice!"
                 done
+            elif [ "x$untracked" == "xy" ];then
+                select selection in {"Delete locally","Start tracking","Ignore","Abort"}; do
+                    [ -z "$selection" ] || break
+                    print_warning "Invalid choice!"
+                done
             else
-                select selection in {"Open mergetool","Restore backup","Overwrite backup","Untrack file","Ignore","Abort"}; do 
+                select selection in {"Open mergetool","Restore backup","Overwrite backup","Untrack file","Ignore","Abort"}; do
                     [ -z "$selection" ] || break
                     print_warning "Invalid choice!"
                 done
@@ -296,7 +305,10 @@ function handle_diverged_file () {
         'Delete in backup')
             delete_file_in_backup $file_abs_path
             ;;
-        'Overwrite backup')
+        'Delete locally')
+            rm -i -- $file_abs_path
+            ;;
+        'Overwrite backup'|'Start tracking')
             backup_file $file_abs_path
             ;;
         'Ignore')
@@ -325,12 +337,16 @@ function check_file () {
         return
     elif [ -e $path ] && [ ! -e ${CTI_FILES_DIR}/$path ]; then
         echo -e "[\e[1;33m??\e[m] UNTRACKED     $path"
-        sleep $delay
+        if [ "x$sync" == "xy" ]; then
+            handle_diverged_file $path  "n" "y"
+        else
+            sleep $delay
+        fi
         return
     elif [ ! -e $path ] && [ -e ${CTI_FILES_DIR}/$path ]; then
         [ -n "$BACKUP_DIR_IGNORE_PATTERN" ] && [[ "$path" =~ $BACKUP_DIR_IGNORE_PATTERN ]] && return
         echo -e "[\e[1;31m!!\e[m] MISSING       $path"
-        [ "x$sync" == "xy" ] && handle_diverged_file $path  "y"
+        [ "x$sync" == "xy" ] && handle_diverged_file $path  "y" "n"
         return
     elif [ -e $path ] && [ -e ${CTI_FILES_DIR}/$path ]; then
         [ -d $path ] && return
@@ -340,7 +356,7 @@ function check_file () {
         local checksum_before=$(checksum ${path})
         if [ "$stored_checksum" != "$checksum_before" ];then
             echo -e "[\e[1;31m!!\e[m] OUT OF SYNC   $path"
-            [ "x$sync" == "xy" ] && handle_diverged_file $path "n"
+            [ "x$sync" == "xy" ] && handle_diverged_file $path "n" "n"
         elif [ "x$SUPPRESS_SYNCED" != "xy" ];then
             echo -e "[\033[00;32mOK\e[m] IN SYNC       $path"
             sleep $delay
