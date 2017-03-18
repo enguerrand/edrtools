@@ -463,6 +463,8 @@ function export_globals () {
     export -f checksum
     export -f get_backup_root
     export -f fullpath
+    export -f link_dest
+    export -f is_file_tracked
     export -f backup_file
     export -f restore_file
     export -f check_backup_dir
