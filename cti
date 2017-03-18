@@ -365,11 +365,11 @@ function check_file () {
     local delay=${2:=0}
     local sync=${3:-y}
     local full_path=$(fullpath $file)
-    local backup_root=$(get_backup_root $file)
     local path=$(echo $full_path | \
         sed -e s#^$CTI_FILES_DIR##  | \
         sed -e s#^$CTI_SYMLINKS_DIR##  | \
         sed -e 's#^\([^/]\)#/\1#g') # prepend slash if needed
+    local backup_root=$(get_backup_root $path)
     
     if [ ! -e $path ] && ([ -e ${CTI_FILES_DIR}/$path ] || [ -e ${CTI_SYMLINKS_DIR}/$path ]); then
         [ -n "$BACKUP_DIR_IGNORE_PATTERN" ] && [[ "$path" =~ $BACKUP_DIR_IGNORE_PATTERN ]] && return
