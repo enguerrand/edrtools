@@ -55,6 +55,8 @@ which ${CTI_MERGETOOL:=vimdiff} > /dev/null 2>&1 || CTI_MERGETOOL=no_merge
 # Compute derived variable names
 CTI_FILES_DIR=${CTI_HOME}/data/
 CTI_SYMLINKS_DIR=${CTI_HOME}/symlinks/
+TRUE=0
+FALSE=1
 
 function print_usage(){
 cat << EOF
@@ -183,6 +185,26 @@ function fullpath () {
         [ -d "$dir" ] && cd "$dir"
         local path="$PWD"
         echo ${path}/${filename}
+    fi
+}
+
+function is_file_tracked () {
+    local file=$1
+    [ -d "$file" ] && return $FALSE
+    local path=$(fullpath $file)
+    if [ -L ${path} ]; then
+        [ -f $CTI_SYMLINKS_DIR/${path} ] && return $TRUE
+        local link_dest=$(readlink $path)
+        cwd=$PWD
+        cd $(dirname ${path})
+        is_file_tracked $link_dest
+        local ret_value=$?
+        cd "$cwd"
+        return $ret_value
+    elif [ -f $CTI_FILES_DIR/${path} ]; then
+        return $TRUE
+    else
+        return $FALSE
     fi
 }
 
@@ -394,22 +416,33 @@ function edit_file () {
         sed -e s#^$CTI_FILES_DIR##  | \
         sed -e s#^$CTI_SYMLINKS_DIR##  | \
         sed -e 's#^\([^/]\)#/\1#g') # prepend slash if needed
-    if [ "x$NO_AUTO_ADD" == "xy" ] && [ ! -e ${CTI_FILES_DIR}/$path ]; then
-        ${CTI_EDITOR:-${EDITOR:-vi}} $file
-    else
-        check_file $file $MSG_DELAY "y"
-        checksum_before=$(checksum $file)
-        ${CTI_EDITOR:-${EDITOR:-vi}} $file
-        checksum_after=$(checksum $file)
-        if [ "$checksum_before" != "$checksum_after" ]; then
-            backup_file $file
+    if ! is_file_tracked $path ; then
+        if [ "x$NO_AUTO_ADD" == "xy" ]; then
+            ${CTI_EDITOR:-${EDITOR:-vi}} $file
+            return
         else
-            echo "Not syncing file because no changes where made!"
+            backup_file $path
         fi
+    fi
+    if [ -L $file ]; then
+        local resolved_file=$(readlink -m -- $file)
+    else
+        local resolved_file=$file
+    fi
+    check_file $file $MSG_DELAY "y"
+    checksum_before=$(checksum $resolved_file)
+    ${CTI_EDITOR:-${EDITOR:-vi}} $resolved_file
+    checksum_after=$(checksum $resolved_file)
+    if [ "$checksum_before" != "$checksum_after" ]; then
+        backup_file $resolved_file
+    else
+        echo "Not syncing file because no changes where made!"
     fi
 }
 
 function export_globals () {
+    export TRUE
+    export FALSE
     export CTI_EDITOR
     export CTI_DIFFTOOL
     export CTI_DIFFOPTS
