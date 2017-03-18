@@ -188,19 +188,24 @@ function fullpath () {
     fi
 }
 
+function link_dest () {
+    local file=$1
+    local link_dest=$(readlink $file)
+    local cwd=$PWD
+    cd $(dirname $file)
+    fullpath $link_dest
+    cd $cwd
+}
+
 function is_file_tracked () {
     local file=$1
     [ -d "$file" ] && return $FALSE
     local path=$(fullpath $file)
     if [ -L ${path} ]; then
         [ -f $CTI_SYMLINKS_DIR/${path} ] && return $TRUE
-        local link_dest=$(readlink $path)
-        cwd=$PWD
-        cd $(dirname ${path})
+        local link_dest=$(link_dest $path)
         is_file_tracked $link_dest
-        local ret_value=$?
-        cd "$cwd"
-        return $ret_value
+        return $?
     elif [ -f $CTI_FILES_DIR/${path} ]; then
         return $TRUE
     else
@@ -213,11 +218,8 @@ function backup_file () {
     [ -d "$file" ] && return
     local path=$(fullpath $file)
     if [ -L ${file} ]; then
-        local symlink_path=$(readlink ${file})
-        local cwd="$PWD"
-        cd $(dirname $path)
+        local symlink_path=$(link_dest ${file})
         check_file ${symlink_path} 0 "y"
-        cd "$cwd"
         mkdir -p $(dirname $CTI_SYMLINKS_DIR/${path})
         echo $symlink_path > $CTI_SYMLINKS_DIR/${path}
         print_ok "Symlink $file (pointing to $symlink_path) synced with backup successfully!"
@@ -259,9 +261,7 @@ function clean_backup_dir () {
 function untrack_file () {
     check_backup_dir
     local file=$1
-    if [ -L $file ];then
-        check_file $(readlink $file) 0 "y"
-    fi
+    [ -L $file ] && check_file $(link_dest $file) 0 "y"
     rm -i -- $(get_backup_root $file)/$(fullpath ${file})
     clean_backup_dir
 }
@@ -399,7 +399,7 @@ function check_file () {
             [ "x$sync" == "xy" ] && handle_diverged_file $path "n" "n"
         else
             if [ -L $path ];then
-                check_file $(readlink $path) $delay $sync
+                check_file $(link_dest $path) $delay $sync
             fi
             if [ "x$SUPPRESS_SYNCED" != "xy" ];then
                 echo -e "[\033[00;32mOK\e[m] IN SYNC       $path"
