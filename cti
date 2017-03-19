@@ -221,7 +221,7 @@ function backup_file () {
         local symlink_path=$(link_dest ${file})
         check_file ${symlink_path} 0 "y"
         mkdir -p $(dirname $CTI_SYMLINKS_DIR/${path})
-        echo $symlink_path > $CTI_SYMLINKS_DIR/${path}
+        echo $(readlink $path) > $CTI_SYMLINKS_DIR/${path}
         print_ok "Symlink $file (pointing to $symlink_path) synced with backup successfully!"
     else
         local temp_dir=$(mktemp -d)
@@ -261,8 +261,17 @@ function clean_backup_dir () {
 function untrack_file () {
     check_backup_dir
     local file=$1
+    local ftype=${2:-u} # one of (f)ile, (s)ymlink, (u)nknown
+    if [ "x$ftype" == "xf" ]; then
+        local bck_root=$CTI_FILES_DIR
+    elif [ "x$ftype" == "xs" ]; then
+        local bck_root=$CTI_SYMLINKS_DIR
+    else
+        local bck_root=$(get_backup_root $file)
+    fi
+    
     [ -L $file ] && check_file $(link_dest $file) 0 "y"
-    rm -i -- $(get_backup_root $file)/$(fullpath ${file})
+    rm -i -- $bck_root/$(fullpath ${file})
     clean_backup_dir
 }
 
@@ -276,6 +285,7 @@ function handle_diverged_file () {
     local file_abs_path=$1
     local missing=$2   # one of (y)es, (n)o
     local untracked=$3 # one of (y)es, (n)o
+    local ftype=$4      # one of (f)ile, (s)ymlink, (u)nknown
 
     if [ "x$missing" == "xy" ];then
         echo "File is present in the backup but not locally!"
@@ -341,7 +351,7 @@ function handle_diverged_file () {
             restore_file $file_abs_path
             ;;
         'Untrack file'|'Delete in backup')
-            untrack_file $file_abs_path
+            untrack_file $file_abs_path $ftype
             ;;
         'Delete locally')
             rm -i -- $file_abs_path
@@ -374,7 +384,10 @@ function check_file () {
     if [ ! -e $path ] && ([ -e ${CTI_FILES_DIR}/$path ] || [ -e ${CTI_SYMLINKS_DIR}/$path ]); then
         [ -n "$BACKUP_DIR_IGNORE_PATTERN" ] && [[ "$path" =~ $BACKUP_DIR_IGNORE_PATTERN ]] && return
         echo -e "[\e[1;31m!!\e[m] MISSING       $path"
-        [ "x$sync" == "xy" ] && handle_diverged_file $path  "y" "n"
+        local ftype="u"
+        [ -e ${CTI_FILES_DIR}/$path ] && ftype="f"
+        [ -e ${CTI_SYMLINKS_DIR}/$path ] && ftype="s"
+        [ "x$sync" == "xy" ] && handle_diverged_file $path  "y" "n" "$ftype"
         return
     elif [ ! -e $path ]; then
         echo -e "[\e[1;33m??\e[m] NEW           $path"
@@ -383,7 +396,7 @@ function check_file () {
     elif [ -e $path ] && [ ! -e ${backup_root}/$path ]; then
         echo -e "[\e[1;33m??\e[m] UNTRACKED     $path"
         if [ "x$sync" == "xy" ]; then
-            handle_diverged_file $path  "n" "y"
+            handle_diverged_file $path  "n" "y" "u"
         else
             sleep $delay
         fi
@@ -396,7 +409,7 @@ function check_file () {
         local checksum_before=$(checksum ${path})
         if [ "$stored_checksum" != "$checksum_before" ];then
             echo -e "[\e[1;31m!!\e[m] OUT OF SYNC   $path"
-            [ "x$sync" == "xy" ] && handle_diverged_file $path "n" "n"
+            [ "x$sync" == "xy" ] && handle_diverged_file $path "n" "n" "u"
         else
             if [ -L $path ];then
                 check_file $(link_dest $path) $delay $sync
@@ -627,7 +640,7 @@ for FILE in $FILES; do
             check_file $FILE 0 "y"
             ;;
         'untrack')
-            untrack_file $FILE
+            untrack_file $FILE "u"
             ;;
         *)
             abort "Unrecognized action $ACTION"
