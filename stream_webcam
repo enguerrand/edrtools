@@ -3,6 +3,7 @@ set -e
 BASEDIR=$(dirname $0)
 source $BASEDIR/inc_dependencies.sh
 source $BASEDIR/inc_msg.sh
+set_dependencies cvlc
 function print_usage(){
     cat << EOF
 Usage: $(basename $0) [OPTIONS]"
@@ -36,13 +37,14 @@ Options:
 
     -h,--help:
         Print this help
+
 EOF
+print_dependencies
 }
 if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
     print_usage
     exit 0
 fi
-set_dependencies cvlc
 check_dependencies
 VIDEO_DEVICE='/dev/video0'
 AUDIO_DEVICE='alsa://hw:1,0'
