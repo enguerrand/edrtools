@@ -1,13 +1,18 @@
 #!/bin/bash
 BASEDIR=$(dirname $0)
+source $BASEDIR/inc_dependencies.sh
 source $BASEDIR/inc_msg.sh
+set_dependencies qpdf
 function print_usage(){
     echo "Usage: $(basename $0) </path/to/pdf>"
+    echo ""
+    print_dependencies
 }
 if [ "x$1" == "x-h" ];then
     print_usage
     exit 0
 fi
+check_dependencies
 qpdf --help >/dev/null 2>&1  || abort "Please install qpdf to be able to use this script"
 [ $# -eq 1 ] || print_usage
 PDF=$1
