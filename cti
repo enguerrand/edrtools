@@ -246,6 +246,7 @@ function restore_file () {
         local temp_dir=$(mktemp -d)
         rsync -ptgol -T $temp_dir -- $CTI_FILES_DIR/$path $path
         rm -rf -- $temp_dir
+        check_file ${path} 0 "y"
     fi
 }
 
