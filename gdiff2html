@@ -1,0 +1,96 @@
+#!/bin/bash
+set -e
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+function print_usage(){
+    cat << EOF
+Adds html styles to the output of git diff (which is read from stdin)
+This is useful to e.g. format diffs for mediawiki.
+
+Usage: $(basename $0) [OPTIONS]"
+
+Example:
+
+    git diff master develop foo | $(basename $0) -H "color:yellow" 
+
+Options:
+    --:
+        Stop processing any further options
+
+    -a,--added-lines-style
+        The next parameter defines the style of added lines.
+        Defaults to green.
+
+    -d,--debug:
+        Run script in debugging mode
+
+    -h,--help:
+        Print this help
+
+    -H,--header-style
+        The next parameter defines the style of diff header sections.
+        Defaults to bold.
+
+    -l,--line-numbers-style
+        The next parameter defines the style of line numbers sections.
+        Defaults to blue.
+    
+    -r,--removed-lines-style
+        The next parameter defines the style of removed lines.
+        Defaults to red.
+EOF
+}
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+    print_usage
+    exit 0
+fi
+HEADER_STYLE="font-weight:bold"
+LINE_NOS_STYLE="color:blue"
+ADDED_LINES_STYLE="color:green"
+REMOVED_LINES_STYLE="color:red"
+while [ $# -gt 0 ];do
+    if [ "x$NO_OPTS" == "xy" ] && [[ "$1" =~ \-.* ]];then
+        ARGS+="$1 "
+    else
+        case $1 in 
+            '--')
+                NO_OPTS="y"
+                ;;
+            '-a'|'--added-lines-style')
+                shift
+                ADDED_LINES_STYLE="$1"
+                ;;
+            '-d'|'--debug')
+                set -xe
+                ;;
+            '-h'|'--help')
+                print_usage
+                exit 0
+                ;;
+            '-H'|'--header-style')
+                shift
+                HEADER_STYLE="$1"
+                ;;
+            '-l'|'--line-numbers-style')
+                shift
+                LINE_NOS_STYLE="$1"
+                ;;
+            '-r'|'--removed-lines-style')
+                shift
+                REMOVED_LINES_STYLE="$1"
+                ;;
+            *)
+                abort "Invalid argument: $1"
+                ;;
+        esac
+    fi
+    shift
+done
+sed  \
+    -e 's#^\(diff .*\)$#<span style="'$HEADER_STYLE';">\1</span>#g' \
+    -e 's#^\(index .*\)$#<span style="'$HEADER_STYLE';">\1</span>#g' \
+    -e 's#^\(--- .*\)$#<span style="'$HEADER_STYLE';">\1</span>#g' \
+    -e 's#^\(+++ .*\)$#<span style="'$HEADER_STYLE';">\1</span>#g' \
+    -e 's#^\(@@ .*\)$#<span style="'$LINE_NOS_STYLE';">\1</span>#g' \
+    -e 's#^\(+.*\)$#<span style="'$ADDED_LINES_STYLE';">\1</span>#g' \
+    -e 's#^\(-.*\)$#<span style="'$REMOVED_LINES_STYLE';">\1</span>#g'
