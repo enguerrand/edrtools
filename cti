@@ -612,7 +612,27 @@ fi
 ############### MAIN SWITCH ##########################
 
 for FILE in $FILES; do
+    FAIL_ON_MISSING="y"
     if [ ! -f "$FILE" ]; then
+        case $ACTION in
+            'edit')
+                FAIL_ON_MISSING="n"
+                ;;
+            'restore')
+                if [ -f $CTI_FILES_DIR/$FILE ] || [ -f $CTI_SYMLINKS_DIR/$FILE ];then
+                    FAIL_ON_MISSING="n"
+                fi
+                ;;
+            'check'|'sync')
+                if [ -f $CTI_FILES_DIR/$FILE ];then
+                    FILE=$CTI_FILES_DIR/$FILE
+                elif [ -f $CTI_SYMLINKS_DIR/$FILE ];then
+                    FILE=$CTI_SYMLINKS_DIR/$FILE
+                fi
+                ;;
+        esac
+    fi
+    if [ "x$FAIL_ON_MISSING" == "xy" ] && [ ! -f "$FILE" ]; then
         print_warning "Ignoring non-existent file $FILE"
         continue
     fi
