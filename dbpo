@@ -5,21 +5,39 @@ SOURCES_LIST=/etc/apt/sources.list
 DEBIAN_RELEASE_NAME=$(grep ^VERSION= /etc/os-release | sed -e "s/.*(\(.*\)).*/\1/")
 source $BASEDIR/inc_msg.sh
 source $BASEDIR/inc_dependencies.sh
+set_dependencies "aptitude"
 function print_usage(){
     cat << EOF
-Usage: $(basename $0) [ packages .... ]"
+Usage: 
+    $(basename $0) [ packages .... ]"
+    
+    Adds a backports entry to $SOURCES_LIST (if it is not already present)
+    Installs packages given as arguments from backports repo 
 
--Adds a backports entry to $SOURCES_LIST (if it is not already present)
--Installs packages given as arguments from backports repo 
+or:
+    $(basename $0) -l | --list
+    
+    Lists installed backports packages
+
+or:
+    $(basename $0) -h | --help
+    
+    Prints this help
+
 EOF
+print_dependencies
 }
 if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
     print_usage
     exit 0
+elif [ "x$1" == "x-l" ] || [ "x$1" == "x--list" ];then
+    check_dependencies
+    aptitude search '?narrow(?version(CURRENT),?origin(Debian Backports))' -F '%100p'
+    exit 0
+else
+    check_dependencies
 fi
 
-set_dependencies "aptitude"
-check_dependencies
 
 [ "$(id -u)" == "0" ] || abort "Run as root!"
 
