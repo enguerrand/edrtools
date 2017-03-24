@@ -1,0 +1,9 @@
+#!/bin/bash
+KBD_PATTERN="AT Translated"
+KBDSTR=$(xinput list | grep "$KBD_PATTERN")
+KBD_ID=$(echo $KBDSTR | egrep -o "id=[0-9]+" | egrep -o "[0-9]+")
+SLAVE_ID=$(echo $KBDSTR | sed -e 's#.*slave##' | egrep -o "[0-9]+")
+xinput float $KBD_ID
+xmessage -center "Keyboard disabled. Press ok to reenable"
+xinput reattach $KBD_ID $SLAVE_ID
+
