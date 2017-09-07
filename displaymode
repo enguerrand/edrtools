@@ -40,7 +40,7 @@ echo "Primary display device: $PRIMARY"
 echo "Secondary display device: $SECONDARY"
 
 if [ $MODE == "single" ];then
-	xrandr  --output $PRIMARY ${RES1_ARG} 
+	xrandr  --output $PRIMARY ${RES1_ARG} --output $SECONDARY --off
 elif [ "$MODE" == "left" ]; then
 	xrandr  --output $SECONDARY ${RES2_ARG} --output $PRIMARY ${RES1_ARG} --right-of $SECONDARY;
 elif [ "$MODE" == "right" ]; then
