@@ -1,0 +1,23 @@
+#!/bin/bash
+set -e
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+function print_usage(){
+    cat << EOF
+A git wrapper script to quickly commit files
+
+Usage: $(basename $0) file[s]"
+EOF
+}
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+    print_usage
+    exit 0
+fi
+
+[ $# -gt 0 ] || abort "Arguments missing!"
+
+ARGS="$@"
+read -p "Commit message: [$ARGS] " COMMIT_MSG
+git add $ARGS
+git commit $ARGS -m "${COMMIT_MSG:-$ARGS}"
+
