@@ -1,31 +1,34 @@
 #!/bin/bash
 set -e
 for PACNEW_FILE in $(locate .pacnew | grep "\.pacnew$"); do
-    read -p "Handle $PACNEW_FILE? [Yn] " handle
-    if [[ "$handle" =~ [Nn] ]];then
+    echo ""
+    read -p "Handle $PACNEW_FILE? [Yn] " HANDLE
+    if [[ "$HANDLE" =~ [Nn] ]];then
        continue
     fi
     ORIG_FILE=${PACNEW_FILE/\.pacnew/}
     diff $ORIG_FILE $PACNEW_FILE || true
     echo ""
     echo "What do you want to do?"
-    select MY_RESULT in {"delete .pacnew","override current","merge"}; do
+    select MY_RESULT in {"delete .pacnew","override current","merge","ignore"}; do
         [ -z "$MY_RESULT" ] || break
         echo ""
         echo "Invalid choice"
     done
     case $MY_RESULT in
         'delete .pacnew')
-            echo "Deleting .pacnew file"
-            rm -f $PACNEW_FILE
+            rm -fv $PACNEW_FILE
             ;;
         'override current')
-            echo "Overwriting current file with .pacnew file"
-            mv -f $PACNEW_FILE $ORIG_FILE
+            mv -fv $PACNEW_FILE $ORIG_FILE
             ;;
         'merge')
-            echo "Open mergetool"
             vimdiff $ORIG_FILE $PACNEW_FILE
+            echo ""
+            read -p "Remove $PACNEW_FILE? [Yn] " REMOVE
+            [[ "$REMOVE" =~ [Nn] ]] || rm -fv $PACNEW_FILE
+            ;;
+        'ignore')
             ;;
     esac
 
