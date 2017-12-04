@@ -1,8 +1,5 @@
 #!/bin/bash
 set -e
-
-read -p "This code is completely untested! Ctrl-c to abort or enter to continue!" foo
-
 BASEDIR=$(dirname $0)
 source $BASEDIR/inc_dependencies.sh
 source $BASEDIR/inc_msg.sh
