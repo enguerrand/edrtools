@@ -13,6 +13,7 @@ UNATTENDED_UPGRADES="n"
 FIREWALL="n"
 GREETER_SHOW_USERS="n"
 PERSISTENT_JOURNALD="n"
+DISABLE_BLUETOOTH="n"
 
 function abort(){
     echo "Error: $@" >&2
@@ -155,6 +156,9 @@ ask_y "Show user choice on login screen?" && \
 ask_y "Enable persistent storage of journald logs?" && \
     PERSISTENT_JOURNALD="y"
 
+ask_y "Diable automatic activation of bluetooth on startup?" && \
+    DISABLE_BLUETOOTH="y"
+
 [ "$APT_LISTS" == "y" ] && apt_lists
 [ "$VIM" == "y" ] && setup_vim
 apt update && apt -y full-upgrade
@@ -167,5 +171,5 @@ apt update && apt -y full-upgrade
 [ "$REMOVE_UNRECOMMENDS" == "y" ] || [ "$GRUB_TIMEOUT" == "y" ] && update-grub
 [ "$GREETER_SHOW_USERS" == "y" ] && greeter_show_users
 [ "$PERSISTENT_JOURNALD" == "y" ] && persistent_journald
-[ "$" == "y" ] && 
+[ "$DISABLE_BLUETOOTH" == "y" ] && disable_bluetooth
 print_remaining_todos
