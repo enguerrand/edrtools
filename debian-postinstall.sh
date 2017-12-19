@@ -1,11 +1,8 @@
 #!/bin/bash
 set -e
-
-read -p "This code is completely untested! Ctrl-c to abort or enter to continue!" foo
-
 SOURCES_LIST=/etc/apt/sources.list
 PKG_RECOMMENDS="chrony mlocate ncdu sudo system-config-printer"
-PKG_UNRECOMMENDS="rpcbind memest86+ nano"
+PKG_UNRECOMMENDS="rpcbind memtest86+ nano"
 INSTALL_RECOMMENDS="n"
 REMOVE_UNRECOMMENDS="n"
 GRUB_TIMEOUT="n"
@@ -75,8 +72,7 @@ function firewall(){
 }
 
 function grub_timeout(){
-    echo "Edit grub timeout"
-    sleep 2
+    sed -i -e 's/^\(GRUB_TIMEOUT=\)[0-9]*$/\110/g' /etc/default/grub
     vi /etc/default/grub
 }
 
