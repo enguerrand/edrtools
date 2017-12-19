@@ -158,7 +158,7 @@ ask_y "Show user choice on login screen?" && \
 ask_y "Enable persistent storage of journald logs?" && \
     PERSISTENT_JOURNALD="y"
 
-ask_y "Diable automatic activation of bluetooth on startup?" && \
+ask_y "Disable automatic activation of bluetooth on startup?" && \
     DISABLE_BLUETOOTH="y"
 
 [ "$APT_LISTS" == "y" ] && apt_lists
