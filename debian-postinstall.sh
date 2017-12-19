@@ -70,6 +70,8 @@ function firewall(){
     apt install -y git
     [ -d edrtools ] || cd /opt && git clone https://github.com/enguerrand/edrtools.git
     /opt/edrtools/install_firewall.sh
+    systemctl enable firewall
+    systemctl start firewall
 }
 
 function grub_timeout(){
