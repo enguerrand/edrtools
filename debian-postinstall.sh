@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 SOURCES_LIST=/etc/apt/sources.list
-PKG_RECOMMENDS="chrony mlocate ncdu sudo system-config-printer"
+PKG_RECOMMENDS="chrony mlocate ncdu sudo system-config-printer screen"
 PKG_UNRECOMMENDS="rpcbind memtest86+ nano"
 INSTALL_RECOMMENDS="n"
 REMOVE_UNRECOMMENDS="n"
