@@ -101,6 +101,47 @@ function install_pubkey(){
     fi
 }
 
+function find_vpn_sample_config(){
+	local _path=/usr/share/doc/openvpn/examples/sample-config-files/client.conf
+	[ -f "${_path}" ] || _path=$(find /usr/share/doc/openvpn/examples -name client.conf | head -n 1)
+	[ -f "${_path}" ] || _path=$(find /usr/share/doc/openvpn/ -name client.conf | head -n 1)
+	echo ${_path}
+}
+
+function create_vpn_client_conf(){
+    local _config_file=/etc/openvpn/client.conf
+    local _keyname=""
+	local _key_file=$(find /etc/openvpn/keys/ -name "*.key")
+	if [ -f "${_key_file}" ]; then
+		local _file_name=$(basename "${_key_file}")
+		_keyname=${_file_name%.*}
+	fi
+    [ -z "$_keyname" ] && read -p "Enter client key name: " _keyname
+    cat > ${_config_file} << EOF
+client
+dev tun
+proto udp
+remote beast.rochefort.de 1194
+resolv-retry infinite
+nobind
+user nobody
+group nogroup
+persist-key
+persist-tun
+ca /etc/openvpn/keys/ca.crt
+cert /etc/openvpn/keys/${_keyname}.crt
+key /etc/openvpn/keys/${_keyname}.key
+remote-cert-tls server
+;tls-auth ta.key 1
+;cipher AES-256-CBC
+comp-lzo
+verb 3
+EOF
+	echo "Installed client config file $_config_file"
+    ask_y "Compare to sample config file?" && \
+		vimdiff $_config_file $(find_vpn_sample_config)
+}
+
 function remote_support(){
     apt install openssh-server openvpn
     echo "Edit sshd_config" && sleep 1 && vi /etc/ssh/sshd_config
