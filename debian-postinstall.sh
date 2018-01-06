@@ -79,11 +79,36 @@ function grub_timeout(){
     vi /etc/default/grub
 }
 
+function print_user(){
+    grep "^[^:]*:x:1000:" /etc/passwd | cut -d':' -f 1
+}
+
+function install_pubkey(){
+    local _username=$(print_user)
+    local _userhome=/home/${_username}
+    [ -d "${_userhome}" ] || read -p "Could not autodetect home directory. Please specify it: " _userhome
+    if [ -d "${_userhome}" ]; then
+        local _ssh_dir=${_userhome}/.ssh
+        mkdir -p ${_ssh_dir}
+        chmod 700 ${_ssh_dir}
+        local _keysfile=${_ssh_dir}/authorized_keys
+        echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCrGQJotAFOgKxtExapqFsCTAnzfRzfQPkymVahIGhTCa1o13CG7RSXX/uFX7K/JFetWnmtb2XihZFDHaICfp2/M0MKvvP3UBoHg7GS+4trtS/4FySylxCSlyby5xDbxVJHDvcO98IvLB0h4kAV5+/V4lSZyhC+oKjCkHtbsO0TAmgW4/9Oavh0dNDG3G3B8FH21koAIj9sO+QGIFBs71bbXAFBL/0vCl/+spRC+dxKDzDgJ8QsIS0wK8KdZA7LKZc0ooSLxac1PTzRq1YDQp6grxeNCxrOyEK+nCHzCVVp6+jDoHK5WEUKpombzpL20ZKjdGh0IH749ch/xgAb+Wat edr-pwd" >> ${_keysfile}
+        chmod 600 ${_keysfile}
+        chown -R ${_username}:${_username} ${_ssh_dir}
+        echo "Public ssh key installed to ${_keysfile}"
+    else
+        echo "Could not find home directory ${_userhome}. No public key installed"
+    fi
+}
+
 function remote_support(){
     apt install openssh-server openvpn
-    echo "TODO: fix sshd_config"
+    echo "Edit sshd_config" && sleep 1 && vi /etc/ssh/sshd_config
     echo "TODO: configure vpn"
-    echo "TODO: enable vpn && ssh server"
+    systemctl enable openvpn
+    systemctl enable ssh
+    ask_y "Install edr's public ssh key? (Only do this if you are me!)" && \
+        install_pubkey
 }
 
 function greeter_show_users(){
@@ -117,6 +142,7 @@ Migrate Thunderbird profile
 Migrate Firefox profile
 Change nemo favorites to data directory if applicable
 Add user to group "sudo"
+Install vpn keys and create client.conf
 EOF
 }
 
