@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 SOURCES_LIST=/etc/apt/sources.list
+SSHD_CONFIG=/etc/ssh/sshd_config
 PKG_RECOMMENDS="chrony mlocate ncdu sudo system-config-printer screen"
 PKG_UNRECOMMENDS="rpcbind memtest86+ nano"
 INSTALL_RECOMMENDS="n"
@@ -142,14 +143,25 @@ EOF
 		vimdiff $_config_file $(find_vpn_sample_config)
 }
 
+function harden_ssh_server(){
+    sed -E -i.orig \
+        -e 's/^#?(PasswordAuthentication).*/\1 no/g' \
+        -e 's/^#?(UsePAM).*/\1 no/g' \
+        -e 's/^#?(X11Forwarding).*/\1 no/g' \
+        ${SSHD_CONFIG}
+}
+
 function remote_support(){
     apt install openssh-server openvpn
-    echo "Edit sshd_config" && sleep 1 && vi /etc/ssh/sshd_config
     echo "TODO: configure vpn"
     systemctl enable openvpn
     systemctl enable ssh
     ask_y "Install edr's public ssh key? (Only do this if you are me!)" && \
         install_pubkey
+    ask_y "Harden ssh server configuration? (Disable password auth, PAM and X11 Forwarding )" && \
+        harden_ssh_server
+    ask_y "Edit sshd_config?" && \
+        vi ${SSHD_CONFIG}
 }
 
 function greeter_show_users(){
