@@ -4,6 +4,7 @@ SOURCES_LIST=/etc/apt/sources.list
 SSHD_CONFIG=/etc/ssh/sshd_config
 PKG_RECOMMENDS="chrony mlocate ncdu sudo system-config-printer screen"
 PKG_UNRECOMMENDS="rpcbind memtest86+ nano"
+VPN_KEYS_DIR=/etc/openvpn/keys
 INSTALL_RECOMMENDS="n"
 REMOVE_UNRECOMMENDS="n"
 GRUB_TIMEOUT="n"
@@ -129,9 +130,9 @@ user nobody
 group nogroup
 persist-key
 persist-tun
-ca /etc/openvpn/keys/ca.crt
-cert /etc/openvpn/keys/${_keyname}.crt
-key /etc/openvpn/keys/${_keyname}.key
+ca ${VPN_KEYS_DIR}/ca.crt
+cert ${VPN_KEYS_DIR}/${_keyname}.crt
+key ${VPN_KEYS_DIR}/${_keyname}.key
 remote-cert-tls server
 ;tls-auth ta.key 1
 ;cipher AES-256-CBC
@@ -151,9 +152,41 @@ function harden_ssh_server(){
         ${SSHD_CONFIG}
 }
 
+function find_vpn_keys(){
+    for _tarball in /tmp/*.tar.gz; do
+        tar tvf ${_tarball} | grep -q \.crt$ || continue
+        echo ${_tarball}
+        return
+    done
+}
+
+function install_vpn_keys(){
+    read -p "vpn keys will be looked for in /tmp/. Make sure the tarball is present there and press enter to continue " foo
+    local _vpn_keys_tarball=$(find_vpn_keys)
+    [ -z "${_vpn_keys_tarball}" ] && read -p "Tarball with keys could not be found. Please specify it manually: " _vpn_keys_tarball
+    if [ ! -f "${_vpn_keys_tarball}" ]; then
+        echo "${_vpn_keys_tarball}: Not found. VPN keys could not be installed."
+        return
+    fi
+    local _tmp_dir=$(mktemp -d)
+    cd ${_tmp_dir}
+    tar xvf ${_vpn_keys_tarball}
+    echo "The following files will be moved to ${VPN_KEYS_DIR} (which will be created if needed):"
+    find . -type f
+    ask_y "Proceed?" && \
+        mkdir -p ${VPN_KEYS_DIR} && \
+        find . -type f -exec cp {} ${VPN_KEYS_DIR} \; && \
+        chown -R root:root ${VPN_KEYS_DIR} 
+        echo "VPN keys successfully installed:" && \
+        ls -lh ${VPN_KEYS_DIR} 
+}
+
 function remote_support(){
     apt install openssh-server openvpn
-    echo "TODO: configure vpn"
+    ask_y "Try to find a tarball with VPN keys in /tmp and install the contents to /etc/openvpn/keys ?" && \
+        install_vpn_keys
+    ask_y "Configure VPN?" && \
+        create_vpn_client_conf
     systemctl enable openvpn
     systemctl enable ssh
     ask_y "Install edr's public ssh key? (Only do this if you are me!)" && \
@@ -189,13 +222,12 @@ function disable_bluetooth(){
 
 function print_remaining_todos(){
     cat << EOF
-Edit fstab (check swap uid. Also check swap ui on parallel installs!)
-install missing fireware / mesa 
-Migrate Thunderbird profile
-Migrate Firefox profile
+Edit fstab (check swap uid. Also check swap uid in fstab on parallel installs!)
+install missing firmware / mesa / touchpad driver etc...
+Migrate Thunderbird profile if needed
+Migrate Firefox profile if needed
 Change nemo favorites to data directory if applicable
 Add user to group "sudo"
-Install vpn keys and create client.conf
 EOF
 }
 
