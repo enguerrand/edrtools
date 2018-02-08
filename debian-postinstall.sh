@@ -183,10 +183,6 @@ function install_vpn_keys(){
 
 function remote_support(){
     apt install openssh-server openvpn
-    ask_y "Try to find a tarball with VPN keys in /tmp and install the contents to /etc/openvpn/keys ?" && \
-        install_vpn_keys
-    ask_y "Configure VPN?" && \
-        create_vpn_client_conf
     systemctl enable openvpn
     systemctl enable ssh
     ask_y "Install edr's public ssh key? (Only do this if you are me!)" && \
@@ -195,6 +191,10 @@ function remote_support(){
         harden_ssh_server
     ask_y "Edit sshd_config?" && \
         vi ${SSHD_CONFIG}
+    ask_y "Try to find a tarball with VPN keys in /tmp and install the contents to /etc/openvpn/keys ?" && \
+        install_vpn_keys
+    ask_y "Configure VPN?" && \
+        create_vpn_client_conf
 }
 
 function greeter_show_users(){
