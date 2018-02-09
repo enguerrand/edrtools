@@ -225,7 +225,7 @@ function disable_bluetooth(){
     cat > $_desktop_file << EOF
 [Desktop Entry]
 Type=Application
-Exec=${_script}
+Exec=sudo ${_script}
 X-GNOME-Autostart-enabled=true
 NoDisplay=false
 Hidden=false
