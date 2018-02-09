@@ -5,6 +5,7 @@ SSHD_CONFIG=/etc/ssh/sshd_config
 PKG_RECOMMENDS="chrony mlocate ncdu sudo system-config-printer screen"
 PKG_UNRECOMMENDS="rpcbind memtest86+ nano"
 VPN_KEYS_DIR=/etc/openvpn/keys
+FIREWALL_CONF=/etc/firewall/firewall.conf
 INSTALL_RECOMMENDS="n"
 REMOVE_UNRECOMMENDS="n"
 GRUB_TIMEOUT="n"
@@ -161,7 +162,6 @@ function find_vpn_keys(){
 }
 
 function install_vpn_keys(){
-    read -p "vpn keys will be looked for in /tmp/. Make sure the tarball is present there and press enter to continue " foo
     local _vpn_keys_tarball=$(find_vpn_keys)
     [ -z "${_vpn_keys_tarball}" ] && read -p "Tarball with keys could not be found. Please specify it manually: " _vpn_keys_tarball
     if [ ! -f "${_vpn_keys_tarball}" ]; then
@@ -177,7 +177,7 @@ function install_vpn_keys(){
         mkdir -p ${VPN_KEYS_DIR} && \
         find . -type f -exec cp {} ${VPN_KEYS_DIR} \; && \
         chown -R root:root ${VPN_KEYS_DIR} 
-        echo "VPN keys successfully installed:" && \
+        echo "VPN keys successfully installed to ${VPN_KEYS_DIR}:" && \
         ls -lh ${VPN_KEYS_DIR} 
 }
 
@@ -189,6 +189,11 @@ function remote_support(){
         install_pubkey
     ask_y "Harden ssh server configuration? (Disable password auth, PAM and X11 Forwarding )" && \
         harden_ssh_server
+    if [ "$FIREWALL" == "y" ]; then
+        ask_y "Open ssh port in firewall?" && \
+           sed -i -e 's/#\($FW.*--dport 22.*\)/\1/g' $FIREWALL_CONF && \
+           systemctl restart firewall
+    fi
     ask_y "Edit sshd_config?" && \
         vi ${SSHD_CONFIG}
     ask_y "Try to find a tarball with VPN keys in /tmp and install the contents to /etc/openvpn/keys ?" && \
@@ -222,6 +227,8 @@ function disable_bluetooth(){
 
 function print_remaining_todos(){
     cat << EOF
+
+TODO:
 Edit fstab (check swap uid. Also check swap uid in fstab on parallel installs!)
 install missing firmware / mesa / touchpad driver etc...
 Migrate Thunderbird profile if needed
@@ -276,8 +283,8 @@ ask_y "Disable automatic activation of bluetooth on startup?" && \
 [ "$VIM" == "y" ] && setup_vim
 apt update && apt -y full-upgrade
 [ "$GRUB_TIMEOUT" == "y" ] && grub_timeout
-[ "$REMOTE_SUPPORT" == "y" ] && remote_support
 [ "$FIREWALL" == "y" ] && firewall
+[ "$REMOTE_SUPPORT" == "y" ] && remote_support
 [ "$UNATTENDED_UPGRADES" == "y" ] && unattended_upgrades
 [ "$INSTALL_RECOMMENDS" == "y" ] && install_recommends
 [ "$REMOVE_UNRECOMMENDS" == "y" ] && remove_unrecommends
