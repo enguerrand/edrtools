@@ -220,9 +220,20 @@ function disable_bluetooth(){
     echo "ALL ALL = NOPASSWD: /usr/local/bin/disable_bluetooth.sh"
     read -p "Hit enter to proceed to visudo" foo
     visudo
-    echo "Now add the following command to autostart with a 5 seconds delay:"
-    echo $_script
-    read -p "Hit enter to continue"
+    local _username=$(print_user)
+    local _desktop_file=/home/${_username}/.config/autostart/Disable_Bluetooth.desktop
+    cat > $_desktop_file << EOF
+[Desktop Entry]
+Type=Application
+Exec=${_script}
+X-GNOME-Autostart-enabled=true
+NoDisplay=false
+Hidden=false
+Name[de_DE]=Disable Bluetooth
+Comment[de_DE]=Automatically disable bluetooth on startup
+X-GNOME-Autostart-Delay=5
+EOF
+    chown ${_username}:${_username} $_desktop_file
 }
 
 function print_remaining_todos(){
