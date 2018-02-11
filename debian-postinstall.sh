@@ -270,7 +270,7 @@ ask_y "Setup iptables-based firewall?" && \
     FIREWALL="y"
 
 ask_y "Setup unattended security updates?" && \
-    UNATTENDED_UPGRADES="n"
+    UNATTENDED_UPGRADES="y"
 
 ask_y "Configure remote support (ssh & vpn)?" && \
     REMOTE_SUPPORT="y"
