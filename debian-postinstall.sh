@@ -221,7 +221,9 @@ function disable_bluetooth(){
     read -p "Hit enter to proceed to visudo" foo
     visudo
     local _username=$(print_user)
-    local _desktop_file=/home/${_username}/.config/autostart/Disable_Bluetooth.desktop
+    local _autostart_folder=/home/${_username}/.config/autostart
+    local _desktop_file=${_autostart_folder}/Disable_Bluetooth.desktop
+    mkdir -p ${_autostart_folder}
     cat > $_desktop_file << EOF
 [Desktop Entry]
 Type=Application
@@ -233,7 +235,7 @@ Name[de_DE]=Disable Bluetooth
 Comment[de_DE]=Automatically disable bluetooth on startup
 X-GNOME-Autostart-Delay=5
 EOF
-    chown ${_username}:${_username} $_desktop_file
+    chown ${_username}:${_username} -R ${_autostart_folder}
 }
 
 function print_remaining_todos(){
