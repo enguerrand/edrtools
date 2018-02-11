@@ -216,8 +216,9 @@ function disable_bluetooth(){
     echo '#!/bin/bash' > $_script
     echo 'rfkill block bluetooth' >> $_script
     chmod +x $_script
-    echo "Take the following line into the clipboard before we call visudo: "
+    echo "Take the following lines into the clipboard before we call visudo: "
     echo "ALL ALL = NOPASSWD: /usr/local/bin/disable_bluetooth.sh"
+    echo "%sudo   ALL=(ALL:ALL) NOPASSWD: /usr/local/bin/disable_bluetooth.sh"
     read -p "Hit enter to proceed to visudo" foo
     visudo
     local _username=$(print_user)
