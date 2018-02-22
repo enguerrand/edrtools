@@ -71,8 +71,10 @@ function setup_vim(){
 
 function firewall(){
     apt install -y git
-    [ -d edrtools ] || cd /opt && git clone https://github.com/enguerrand/edrtools.git
-    /opt/edrtools/install_firewall.sh
+    [ -d /opt/edrtools ] || cd /opt && git clone https://github.com/enguerrand/edrtools.git
+    local _firewall_install_opts=""
+    [ "$REMOTE_SUPPORT" == "y" ] &&  _firewall_install_opts+=" -s"  # open ssh port for remote support
+    /opt/edrtools/install_firewall.sh $_firewall_install_opts
     systemctl enable firewall
     systemctl start firewall
 }
@@ -189,11 +191,6 @@ function remote_support(){
         install_pubkey
     ask_y "Harden ssh server configuration? (Disable password auth, PAM and X11 Forwarding )" && \
         harden_ssh_server
-    if [ "$FIREWALL" == "y" ]; then
-        ask_y "Open ssh port in firewall?" && \
-           sed -i -e 's/#\($FW.*--dport 22.*\)/\1/g' $FIREWALL_CONF && \
-           systemctl restart firewall
-    fi
     ask_y "Edit sshd_config?" && \
         vi ${SSHD_CONFIG}
     ask_y "Try to find a tarball with VPN keys in /tmp and install the contents to /etc/openvpn/keys ?" && \
