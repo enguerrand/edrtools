@@ -7,20 +7,32 @@ source $BASEDIR/inc_msg.sh
 set_dependencies iptables ip6tables
 
 function print_usage(){
-    echo "Usage: $(basename $0)"
+    cat << EOF
+Usage: $(basename $0)
+
+Options:
+    -s:     Leave ssh port open
+    -h:     Print this help
+EOF
     print_dependencies
+    exit 0
 }
 
-if [ "x$1" == "x-h" ];then
-    print_usage
-    exit 0
-fi
+while getopts "sh" opt; do
+    case $opt in
+        s) ALLOW_SSH="y";;
+        h) print_usage;;
+        *) abort "Aborting due to invalid user input"
+    esac
+done
 
 check_dependencies
 
 function print_firewall_conf(){
     local _stop_file=$1
     local _conf_file=$2
+    local _ssh_prefix="#"
+    [ "x$ALLOW_SSH" == "xy" ] && _ssh_prefix=""
 cat << EOF
 #!/bin/bash
 # $_conf_file
@@ -48,7 +60,7 @@ for FW in {\$FW4,\$FW6}; do
     # INPUT
     \$FW -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
     \$FW -A INPUT -i lo -j ACCEPT -m comment --comment "Allow inbound traffic on lo"
-    #\$FW -A INPUT -p tcp --dport 22 -j ACCEPT -m comment --comment "Allow inbound ssh"
+    ${_ssh_prefix}\$FW -A INPUT -p tcp --dport 22 -j ACCEPT -m comment --comment "Allow inbound ssh"
     \$FW -A INPUT -j DROP
 done
 EOF
