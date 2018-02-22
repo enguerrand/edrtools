@@ -7,7 +7,7 @@ source $BASEDIR/inc_msg.sh
 set_dependencies iptables ip6tables
 
 function print_usage(){
-    echo "Usage: $(basename $0) <iso-image> <block device>"
+    echo "Usage: $(basename $0)"
     print_dependencies
 }
 
