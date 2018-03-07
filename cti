@@ -619,7 +619,7 @@ for FILE in $FILES; do
             'edit')
                 FAIL_ON_MISSING="n"
                 ;;
-            'restore')
+            'restore'|'untrack')
                 if [ -f $CTI_FILES_DIR/$FILE ] || [ -f $CTI_SYMLINKS_DIR/$FILE ];then
                     FAIL_ON_MISSING="n"
                 fi
