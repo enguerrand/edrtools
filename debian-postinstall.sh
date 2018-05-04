@@ -2,7 +2,7 @@
 set -e
 SOURCES_LIST=/etc/apt/sources.list
 SSHD_CONFIG=/etc/ssh/sshd_config
-PKG_RECOMMENDS="chrony mlocate ncdu sudo system-config-printer screen"
+PKG_RECOMMENDS="chrony mlocate ncdu sudo system-config-printer tmux"
 PKG_UNRECOMMENDS="rpcbind memtest86+ nano"
 VPN_KEYS_DIR=/etc/openvpn/keys
 FIREWALL_CONF=/etc/firewall/firewall.conf
