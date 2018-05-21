@@ -16,3 +16,4 @@ DIR=$1
 cd "${DIR}"
 find . -type f -exec chmod 644 {} \;
 find . -type d -exec chmod 755 {} \;
+find . -type f -iname "*.sh" -exec chmod 755 {} \;
