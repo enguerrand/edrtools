@@ -23,7 +23,7 @@ INSTALL_DIR=/opt/google/
 BUILD_DIR=/tmp/google-chrome
 PKG_NAME=google-chrome-stable_current_amd64.deb
 PKG_URL="https://dl.google.com/linux/direct/$PKG_NAME"
-mkdir -p $BUILD_DIR
+mkdir -p $BUILD_DIR $INSTALL_DIR
 rm -rf $BUILD_DIR/*
 cd $BUILD_DIR
 wget $PKG_URL
