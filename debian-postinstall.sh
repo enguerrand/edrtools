@@ -183,8 +183,28 @@ function install_vpn_keys(){
         ls -lh ${VPN_KEYS_DIR} 
 }
 
+function install_vnc_starter(){
+    local _fw=/usr/local/bin/allow_vnc.sh
+    local _run=/usr/local/bin/run_vnc.sh
+    cat > ${_fw} << EOF
+#!/bin/bash
+/sbin/iptables -I INPUT -p tcp --dport 5900 -j ACCEPT
+EOF
+
+    cat > ${_run} << EOF
+#!/bin/bash
+if [ \$EUID -eq 0 ]; then
+    echo "Don't run as root!"
+    exit 0
+fi
+sudo ${_fw}
+x11vnc -display :0
+EOF
+    chmod 755 ${_fw} ${_run}
+}
+
 function remote_support(){
-    apt install openssh-server openvpn
+    apt install openssh-server openvpn x11vnc
     systemctl enable openvpn
     systemctl enable ssh
     ask_y "Install edr's public ssh key? (Only do this if you are me!)" && \
@@ -197,6 +217,8 @@ function remote_support(){
         install_vpn_keys
     ask_y "Configure VPN?" && \
         create_vpn_client_conf
+    ask_y "Install starter script for VNC server?" && \
+        install_vnc_starter
 }
 
 function greeter_show_users(){
