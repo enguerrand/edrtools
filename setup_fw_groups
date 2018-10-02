@@ -1,0 +1,31 @@
+#!/bin/bash
+set -e
+function print_usage(){
+    cat << EOF
+Usage: $(basename $0) USERNAME
+EOF
+    exit
+}
+
+function list_groups(){
+    cat << EOF
+no-internet
+full-inet
+mailclient
+web
+terminal
+devtools
+EOF
+}
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+    print_usage
+    exit 0
+fi
+
+USERNAME=$1
+[ -z "$USERNAME" ] && print_usage
+
+for G in $(list_groups); do
+    groupadd -K GID_MIN=2000 $G
+    usermod -a -G $G $USERNAME
+done
