@@ -75,7 +75,7 @@ function print_usage(){
 OEOF
         if [ "x$INC_OPT_PARSER" == "xy" ]; then
         cat >> $NEWSCRIPT << "OEOF"
-Usage: $(basename $0) [OPTIONS]"
+Usage: $(basename $0) [OPTIONS]
 
 Options:
     --:
