@@ -6,6 +6,8 @@ function print_usage() {
 cat << EOF
 Usage: $(basename $0) [OPTIONS] [list of filenames for new scripts]
 Valid options are:
+    -a
+        Adds abort function
     -b 
         Initialize edrtools BASEDIR variable
     -d
@@ -28,6 +30,11 @@ fi
 
 while [ $# -gt 0 ];do
     case "$1" in
+        '-a')
+            INC_ABORT="y"
+            shift
+            continue
+            ;;
         '-b')
             INC_BASEDIR="y"
             shift
@@ -69,12 +76,12 @@ while [ $# -gt 0 ];do
         [ "x$INC_LOCK" == "xy" ] && echo "source \$BASEDIR/inc_lock.sh" >> $NEWSCRIPT
         [ "x$INC_MSG" == "xy" ] && echo "source \$BASEDIR/inc_msg.sh" >> $NEWSCRIPT
         if [ "x$INC_PRINT_USAGE" == "xy" ]; then
-		 cat >> $NEWSCRIPT << "OEOF"
+		    cat >> $NEWSCRIPT << "OEOF"
 function print_usage(){
     cat << EOF
 OEOF
-        if [ "x$INC_OPT_PARSER" == "xy" ]; then
-        cat >> $NEWSCRIPT << "OEOF"
+            if [ "x$INC_OPT_PARSER" == "xy" ]; then
+                cat >> $NEWSCRIPT << "OEOF"
 Usage: $(basename $0) [OPTIONS]
 
 Options:
@@ -87,18 +94,27 @@ Options:
     -h,--help:
         Print this help
 OEOF
-        else
-            echo 'Usage: $(basename $0)"' >> $NEWSCRIPT
+            else
+                echo 'Usage: $(basename $0)' >> $NEWSCRIPT
+            fi
+            echo "EOF" >> $NEWSCRIPT
+            echo "}" >> $NEWSCRIPT
         fi
-        cat >> $NEWSCRIPT << "OEOF"
-EOF
-}
+        if [ "x$INC_ABORT" == "xy" ]; then
+            echo "function abort(){" >> $NEWSCRIPT
+            echo '    echo "Error: $@" >&2' >> $NEWSCRIPT
+            [ "x$INC_PRINT_USAGE" == "xy" ] && echo "    print_usage" >> $NEWSCRIPT
+            echo "    exit -1" >> $NEWSCRIPT
+            echo "}" >> $NEWSCRIPT
+        fi
+        if [ "x$INC_PRINT_USAGE" == "xy" ]; then
+            cat >> $NEWSCRIPT << "OEOF"
 if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
     print_usage
     exit 0
 fi
 OEOF
-	fi
+        fi
         if [ "x$INC_OPT_PARSER" == "xy" ]; then
             cat >> $NEWSCRIPT << "OEOF"
 ARGS=""
