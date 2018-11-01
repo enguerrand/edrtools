@@ -1,0 +1,113 @@
+#!/bin/bash
+set -e
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+function print_usage(){
+    cat << EOF
+Usage: $(basename $0) [OPTIONS] CSV-FILE
+
+Builds SQL Statements from (unquoted) CSV files.
+
+Options:
+    --:
+        Stop processing any further options
+
+    -d,--debug:
+        Run script in debugging mode
+
+    -D,--delimiter
+        Use the following parameter as column delimiter. Defaults to ;
+
+    -h,--help:
+        Print this help
+    
+    -t,--tablename:
+        Use the following parameter as table name in generated sql
+        Defaults to "mytable"
+
+    -u,--update-selector-column
+        Create update statements instead of insert statements. The column index 
+        (starting at 0) specified as next argument selects the column to use in 
+        where-clauses that select the entries to be updated.
+EOF
+}
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+    print_usage
+    exit 0
+fi
+CSV=""
+DELIM=";"
+TABLE="mytable"
+UPDATE_COLUMN=""
+while [ $# -gt 0 ];do
+    if [ "x$NO_OPTS" == "xy" ] && [[ "$1" =~ \-.* ]];then
+        ARGS+="$1 "
+    else
+        case $1 in 
+            '--')
+                NO_OPTS="y"
+                ;;
+            '-d'|'--debug')
+                set -xe
+                ;;
+            '-D'|'--delimiter')
+                shift
+                DELIM="$1"
+                ;;
+            '-t'|'--tablename')
+                shift
+                TABLE="$1"
+                ;;
+            '-u'|'--update-selector-column')
+                shift
+                UPDATE_COLUMN="$1"
+                ;;
+            '-h'|'--help')
+                print_usage
+                exit 0
+                ;;
+            *)
+                [ -z "${CSV}" ] || abort "Too many arguments: "$1
+                CSV="$1 "
+                ;;
+        esac
+    fi
+    shift
+done
+
+function print_insert_stmt(){
+    local row="$@"
+    local col_names=$(echo "${HEADER_ROW}" | sed -e "s/${DELIM}/, /g")
+    local values=$(echo "${row}" | sed -e "s/${DELIM}/', '/g")
+    echo "INSERT INTO ${TABLE} (${col_names}) VALUES ('${values}');"
+}
+
+function print_update_stmt(){
+    local row="$@"
+    local values
+    local query
+    local h
+    local index
+    IFS="${DELIM}" read -a values <<< "${row}"
+    query="UPDATE ${TABLE} SET"
+    index=0
+    for h in ${HEADERS[@]}; do
+        [ ${index} -ne ${UPDATE_COLUMN} ] && query+=" ${h}='${values[${index}]}'"
+        ((index++)) || true
+    done
+    query+=" WHERE ${HEADERS[${UPDATE_COLUMN}]}='${values[${UPDATE_COLUMN}]}' LIMIT 1;"
+    echo "${query}"
+}
+
+[ -z "${CSV}" ] && abort "Argument CSV-FILE missing!"
+
+HEADER_ROW="$(head -n 1 ${CSV})"
+IFS="${DELIM}" read -a HEADERS <<< "${HEADER_ROW}"
+
+while read ROW; do 
+    if [ -z "${UPDATE_COLUMN}" ]; then
+        print_insert_stmt "${ROW}"
+    else
+        print_update_stmt "${ROW}"
+    fi
+done < <(tail -n +2 ${CSV})
