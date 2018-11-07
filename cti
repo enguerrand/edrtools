@@ -176,7 +176,9 @@ function get_backup_root () {
 
 function fullpath () {
     local file=$1
-    if [ -d "$file" ];then
+    if [[ "$file" =~ ^/ ]]; then # don't mess with paths that are already absolute
+        echo $file
+    elif [ -d "$file" ];then
         cd -- $file
         pwd
     else
@@ -611,6 +613,7 @@ fi
 for FILE in $FILES; do
     FAIL_ON_MISSING="y"
     if [ ! -f "$FILE" ]; then
+        FILE=$(fullpath $FILE)
         case $ACTION in
             'edit')
                 FAIL_ON_MISSING="n"
