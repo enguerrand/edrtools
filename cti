@@ -262,17 +262,13 @@ function clean_backup_dir () {
 function untrack_file () {
     check_backup_dir
     local file=$1
-    local ftype=${2:-u} # one of (f)ile, (s)ymlink, (u)nknown
-    if [ "x$ftype" == "xf" ]; then
-        local bck_root=$CTI_FILES_DIR
-    elif [ "x$ftype" == "xs" ]; then
-        local bck_root=$CTI_SYMLINKS_DIR
-    else
-        local bck_root=$(get_backup_root $file)
-    fi
     
     [ -L $file ] && check_file $(link_dest $file) 0 "y"
-    rm -i -- $bck_root/$(fullpath ${file})
+
+    local fp=$(fullpath ${file})
+    [ -e "$CTI_FILES_DIR/$fp" ] && rm -i -- "$CTI_FILES_DIR/$fp"
+    [ -e "$CTI_SYMLINKS_DIR/$fp" ] && rm -i -- "$CTI_SYMLINKS_DIR/$fp"
+
     clean_backup_dir
 }
 
@@ -352,7 +348,7 @@ function handle_diverged_file () {
             restore_file $file_abs_path
             ;;
         'Untrack file'|'Delete in backup')
-            untrack_file $file_abs_path $ftype
+            untrack_file $file_abs_path
             ;;
         'Delete locally')
             rm -i -- $file_abs_path
@@ -661,7 +657,7 @@ for FILE in $FILES; do
             check_file $FILE 0 "y"
             ;;
         'untrack')
-            untrack_file $FILE "u"
+            untrack_file $FILE
             ;;
         *)
             abort "Unrecognized action $ACTION"
