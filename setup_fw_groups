@@ -15,6 +15,7 @@ mailclient
 web
 terminal
 devtools
+jabberclient
 EOF
 }
 if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
