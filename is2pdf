@@ -1,0 +1,35 @@
+#!/bin/bash
+set -e
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_dependencies.sh
+function print_usage(){
+    cat << EOF
+Usage: 
+    $(basename $0) <input.svg> [<output.pdf>]
+
+Converts an inscape svg file to pdf.
+If the output argument is omitted, the input file name is used and its
+extension is replaced by pdf.
+
+or:
+    $(basename $0) -h | --help
+
+Prints this help
+
+EOF
+    print_dependencies
+}
+set_dependencies "inkscape"
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+    print_usage
+    exit 0
+fi
+
+check_dependencies
+
+[ $# -ge 1 ] || abort "Arguments missing!"
+[ $# -le 2 ] || abort "Too many arguments!"
+
+input="$1"
+output="${2:-${input%.*}.pdf}"
+inkscape --without-gui --file "${input}" --export-pdf="${output}"
