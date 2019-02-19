@@ -1,0 +1,24 @@
+#!/bin/bash
+set -e
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_msg.sh
+
+function print_usage(){
+    cat << EOF
+Usage: $(basename $0) host_index
+
+Removes the line at the given host_index in \$HOME/.ssh/known_hosts
+EOF
+}
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+    print_usage
+    exit 0
+fi
+
+index=$1
+[ -z "${index}" ] && abort "Missing argument host_index"
+[[ "${index}" =~ ^[0-9]*$ ]] || abort "${index}: not a valid host_index. (Integer value expected)"
+known_hosts_file="${HOME}/.ssh/known_hosts"
+[ -f "${known_hosts_file}" ] || "Could not find known_hosts file at ${known_hosts_file}"
+sed_cmd="${index}d"
+sed -ie ${sed_cmd} "${known_hosts_file}"
