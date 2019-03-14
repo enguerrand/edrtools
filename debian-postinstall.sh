@@ -24,7 +24,7 @@ function abort(){
 
 function print_usage(){
     cat << EOF
-Usage: $(basename $0)"
+Usage: $(basename $0)
 
 Postinstall script targeted at Debian installs.
 Must be executed as root.
