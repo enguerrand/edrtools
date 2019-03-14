@@ -16,7 +16,6 @@ UNATTENDED_UPGRADES="n"
 FIREWALL="n"
 GREETER_SHOW_USERS="n"
 PERSISTENT_JOURNALD="n"
-DISABLE_BLUETOOTH="n"
 
 function abort(){
     echo "Error: $@" >&2
@@ -229,35 +228,6 @@ function persistent_journald(){
     mkdir -v -p /var/log/journal
 }
 
-function disable_bluetooth(){
-    apt install rfkill sudo
-    local _script="/usr/local/bin/disable_bluetooth.sh"
-    echo '#!/bin/bash' > $_script
-    echo 'rfkill block bluetooth' >> $_script
-    chmod +x $_script
-    echo "Take the following lines into the clipboard before we call visudo: "
-    echo "ALL ALL = NOPASSWD: /usr/local/bin/disable_bluetooth.sh"
-    echo "%sudo   ALL=(ALL:ALL) NOPASSWD: /usr/local/bin/disable_bluetooth.sh"
-    read -p "Hit enter to proceed to visudo" foo
-    visudo
-    local _username=$(print_user)
-    local _autostart_folder=/home/${_username}/.config/autostart
-    local _desktop_file=${_autostart_folder}/Disable_Bluetooth.desktop
-    mkdir -p ${_autostart_folder}
-    cat > $_desktop_file << EOF
-[Desktop Entry]
-Type=Application
-Exec=sudo ${_script}
-X-GNOME-Autostart-enabled=true
-NoDisplay=false
-Hidden=false
-Name[de_DE]=Disable Bluetooth
-Comment[de_DE]=Automatically disable bluetooth on startup
-X-GNOME-Autostart-Delay=5
-EOF
-    chown ${_username}:${_username} -R ${_autostart_folder}
-}
-
 function print_remaining_todos(){
     cat << EOF
 
@@ -309,9 +279,6 @@ ask_y "Show user choice on login screen?" && \
 ask_y "Enable persistent storage of journald logs?" && \
     PERSISTENT_JOURNALD="y"
 
-ask_y "Disable automatic activation of bluetooth on startup?" && \
-    DISABLE_BLUETOOTH="y"
-
 [ "$APT_LISTS" == "y" ] && apt_lists
 [ "$VIM" == "y" ] && setup_vim
 apt update && apt -y full-upgrade
@@ -324,5 +291,4 @@ apt update && apt -y full-upgrade
 [ "$REMOVE_UNRECOMMENDS" == "y" ] || [ "$GRUB_TIMEOUT" == "y" ] && update-grub
 [ "$GREETER_SHOW_USERS" == "y" ] && greeter_show_users
 [ "$PERSISTENT_JOURNALD" == "y" ] && persistent_journald
-[ "$DISABLE_BLUETOOTH" == "y" ] && disable_bluetooth
 print_remaining_todos
