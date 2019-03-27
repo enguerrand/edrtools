@@ -117,7 +117,7 @@ OEOF
         fi
         if [ "x$INC_OPT_PARSER" == "xy" ]; then
             cat >> $NEWSCRIPT << "OEOF"
-ARGS=""
+ARGS=()
 while [ $# -gt 0 ];do
     if [ "x$NO_OPTS" == "xy" ] && [[ "$1" =~ \-.* ]];then
         ARGS+="$1 "
@@ -134,7 +134,7 @@ while [ $# -gt 0 ];do
                 exit 0
                 ;;
             *)
-                ARGS+="$1 "
+                ARGS+=("$1")
                 ;;
         esac
     fi
