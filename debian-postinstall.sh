@@ -125,7 +125,7 @@ function create_vpn_client_conf(){
 client
 dev tun
 proto udp
-remote beast.rochefort.de 1194
+remote vpn.rochefort.de 1194
 resolv-retry infinite
 nobind
 user nobody
