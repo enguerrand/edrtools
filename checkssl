@@ -8,23 +8,65 @@ set_dependencies openssl
 
 function print_usage(){
     cat << EOF
-Usage: $(basename $0) <DOMAIN>
+Usage: $(basename $0) <DOMAIN> [-d days_until_expire | --days days_until_expire]
+
+If the validity expiration date is closer that days_until_expire the script exits with a non-zero value
 
 EOF
 print_dependencies
 }
-if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
-    print_usage
-    exit 0
-fi
 
-DOMAIN=$1
+ARGS=()
+while [ $# -gt 0 ];do
+    if [ "x$NO_OPTS" == "xy" ] && [[ "$1" =~ \-.* ]];then
+        ARGS+="$1 "
+    else
+        case $1 in 
+            '--')
+                NO_OPTS="y"
+                ;;
+            '-d'|'--days')
+                shift
+                DAYS="$1"
+                ;;
+            '--debug')
+                set -xe
+                ;;
+            '-h'|'--help')
+                print_usage
+                exit 0
+                ;;
+            *)
+                ARGS+=("$1")
+                ;;
+        esac
+    fi
+    shift
+done
+
+DOMAIN=${ARGS[0]}
 [ -z "$DOMAIN" ] && abort "Argument <DOMAIN> missing!"
 
 check_dependencies
 
-openssl s_client -connect $DOMAIN:443 \
+EXP=$(openssl s_client -connect $DOMAIN:443 \
     -servername $DOMAIN </dev/null 2>/dev/null |\
     openssl x509 -in /dev/stdin -noout -dates |\
 	grep notAfter |\
-	cut -d'=' -f 2
+    cut -d'=' -f 2)
+
+if [ -z "$DAYS" ]; then
+    echo "$EXP"
+    exit 0
+fi
+
+THRESHOLD=$((DAYS*24*60*60))
+NOW_SECS=$(date "+%s")
+EXP_SECS=$(date -d "$EXP" "+%s")
+if [ $((EXP_SECS-NOW_SECS)) -lt $THRESHOLD ]; then
+    echo "Expiration date is below threshold of $DAYS days: $EXP" >&2
+    exit -1
+else
+    echo "$EXP"
+    exit 0
+fi
