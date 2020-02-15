@@ -16,7 +16,7 @@ fi
 
 list=/etc/apt/sources.list.d/unstable.list
 prefs_unstable=/etc/apt/preferences.d/limit-unstable
-prefs_wireguard=/etc/apt/preferences.d/limit-unstable
+prefs_wireguard=/etc/apt/preferences.d/allow-wireguard
 nm_conf_dir=/etc/NetworkManager
 nm_unmanaged_conf=${nm_conf_dir}/conf.d/unmanaged.conf
 [ -e "${list}" ] && abort "File ${list} already exists!"
