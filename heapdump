@@ -1,0 +1,34 @@
+#!/bin/bash
+set -e
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_dependencies.sh
+source $BASEDIR/inc_msg.sh
+
+set_dependencies jmap
+
+function print_usage(){
+    cat << EOF
+Usage: $(basename $0)
+
+EOF
+    print_dependencies
+}
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+    print_usage
+    exit 0
+fi
+
+check_dependencies
+
+echo "Running java processes: "
+processes=$(ps -eo pid,args | grep java | grep -v 'grep java')
+suggested=$(echo "${processes}" | head -n 1 | cut -d' ' -f 1)
+[ -z "${suggested}" ] && abort "No running java process found!"
+echo "${processes}"
+read -p "Which process do you want to dump (enter PID) [${suggested}]? " user_input
+pid=${user_input:-${suggested}}
+[ -z "${pid}" ] && abort "No PID given!"
+echo "Chosen PID: ${pid}"
+out=./heapdump_$(date +%s).hprof
+echo "Dumping to ${out}"
+jmap -dump:live,file=${out} ${pid}
