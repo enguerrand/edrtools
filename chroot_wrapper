@@ -3,18 +3,22 @@ set -e
 BASEDIR=$(dirname $0)
 source $BASEDIR/inc_msg.sh
 function print_usage {
-    printf "Usage: $(basename $0) <dev>\n";
+    printf "Usage: $(basename $0) <dev|target_dir>\n";
 }
 
-if [ "x$1" == "x-h" ]; then
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ]; then
     printf "Creates a tempdir and chroots into it.\n\n"
     print_usage
     exit 0
 fi
 TARGET_DEV=$1
-[ -z $TARGET_DEV ] && abort $(print_usage)
-TARGET=$(mktemp -d)
-mount $TARGET_DEV $TARGET
+[ -z "${TARGET_DEV}" ] && abort $(print_usage)
+if [ -d "${TARGET_DEV}" ]; then
+    TARGET="${TARGET_DEV}"
+else
+    TARGET=$(mktemp -d)
+    mount ${TARGET_DEV} ${TARGET}
+fi
 for DIR in \
     "/dev" \
     "/dev/pts" \
