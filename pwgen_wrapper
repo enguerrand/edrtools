@@ -1,0 +1,39 @@
+#!/bin/bash
+set -e
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_dependencies.sh
+set_dependencies pwgen
+
+function print_usage(){
+    cat << EOF
+Usage: $(basename $0) [length]
+
+length of generated passwords. (defaults to 50)
+
+EOF
+    print_dependencies
+}
+if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+    print_usage
+    exit 0
+fi
+
+function header () {
+    echo ""
+    echo "$@"
+    echo "##############"
+    echo ""
+} 
+ 
+check_dependencies
+
+length=${1:-75}
+
+header "Alphanumeric"
+pwgen -1 -N 5 ${length}
+
+header "With special chars"
+pwgen -1 -y -N 5 ${length}
+
+header "Secure"
+pwgen -1 -y -s -N 5 ${length}
