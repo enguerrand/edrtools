@@ -23,14 +23,17 @@ for DIR in \
     "/dev" \
     "/dev/pts" \
     "/proc" \
-    "/sys" 
+    "/sys" \
+    "/sys/firmware/efi/efivars"
 do
+    [ -d ${DIR} ] || continue
     [ -d ${TARGET}${DIR} ] || mkdir -p ${TARGET}${DIR}
     mount --bind ${DIR} ${TARGET}${DIR}
 done
 read -p "Copy resolv.conf to target system? [y/N]" CPRC
 if [ "x${CPRC}" == "xy" ];then
-    cp /etc/resolv.conf $TARGET/etc/resolv.conf
+    rm -f $TARGET/etc/resolv.conf
+    cat /etc/resolv.conf > $TARGET/etc/resolv.conf
 fi
 chroot $TARGET /bin/bash
 sleep 1
@@ -38,10 +41,10 @@ for DIR in \
     "/dev/pts" \
     "/dev" \
     "/proc" \
-    "/sys" 
+    "/sys" \
+    "/sys/firmware/efi/efivars"
 do
-    umount ${TARGET}${DIR}
-    rmdir  ${TARGET}${DIR}
+    [ -d ${DIR} ] && umount ${TARGET}${DIR} && rmdir  ${TARGET}${DIR}
 done
 umount $TARGET
 rmdir $TARGET
