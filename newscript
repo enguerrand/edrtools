@@ -1,7 +1,7 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 BASEDIR=$(dirname $0)
-source $BASEDIR/inc_msg.sh
+source ${BASEDIR}/inc_msg.sh
 function print_usage() {
 cat << EOF
 Usage: $(basename $0) [OPTIONS] [list of filenames for new scripts]
@@ -23,13 +23,21 @@ Valid options are:
 EOF
 }
 
-if [ "x$1" == "x-h" ];then
+if [ "$1" == "-h" ];then
     print_usage
     exit 0
 fi
 
+INC_ABORT="n"
+INC_BASEDIR="n"
+INC_DEPENDENCIES="n"
+INC_LOCK="n"
+INC_MSG="n"
+INC_OPT_PARSER="n"
+INC_PRINT_USAGE="n"
+
 while [ $# -gt 0 ];do
-    case "$1" in
+    case "${1}" in
         '-a')
             INC_ABORT="y"
             shift
@@ -67,21 +75,21 @@ while [ $# -gt 0 ];do
             ;;
     esac
     NEWSCRIPT=$1
-    [ -z $NEWSCRIPT ] && exit
-    if [ ! -f $NEWSCRIPT ];then
-        echo '#!/bin/bash' > $NEWSCRIPT
-        echo 'set -e' >> $NEWSCRIPT
-        [ "x$INC_BASEDIR" == "xy" ] && echo "BASEDIR=\$(dirname \$0)" >> $NEWSCRIPT
-        [ "x$INC_DEPENDENCIES" == "xy" ] && echo "source \$BASEDIR/inc_dependencies.sh" >> $NEWSCRIPT
-        [ "x$INC_LOCK" == "xy" ] && echo "source \$BASEDIR/inc_lock.sh" >> $NEWSCRIPT
-        [ "x$INC_MSG" == "xy" ] && echo "source \$BASEDIR/inc_msg.sh" >> $NEWSCRIPT
-        if [ "x$INC_PRINT_USAGE" == "xy" ]; then
-		    cat >> $NEWSCRIPT << "OEOF"
+    [ -z ${NEWSCRIPT} ] && exit
+    if [ ! -f ${NEWSCRIPT} ];then
+        echo '#!/bin/bash' > ${NEWSCRIPT}
+        echo 'set -euo pipefail' >> ${NEWSCRIPT}
+        [ "${INC_BASEDIR}" == "y" ] && echo "BASEDIR=\$(dirname \$0)" >> ${NEWSCRIPT}
+        [ "${INC_DEPENDENCIES}" == "y" ] && echo "source \$BASEDIR/inc_dependencies.sh" >> ${NEWSCRIPT}
+        [ "${INC_LOCK}" == "y" ] && echo "source \$BASEDIR/inc_lock.sh" >> ${NEWSCRIPT}
+        [ "${INC_MSG}" == "y" ] && echo "source \$BASEDIR/inc_msg.sh" >> ${NEWSCRIPT}
+        if [ "${INC_PRINT_USAGE}" == "y" ]; then
+		    cat >> ${NEWSCRIPT} << "OEOF"
 function print_usage(){
     cat << EOF
 OEOF
-            if [ "x$INC_OPT_PARSER" == "xy" ]; then
-                cat >> $NEWSCRIPT << "OEOF"
+            if [ "$INC_OPT_PARSER" == "y" ]; then
+                cat >> ${NEWSCRIPT} << "OEOF"
 Usage: $(basename $0) [OPTIONS]
 
 Options:
@@ -95,34 +103,34 @@ Options:
         Print this help
 OEOF
             else
-                echo 'Usage: $(basename $0)' >> $NEWSCRIPT
+                echo 'Usage: $(basename $0)' >> ${NEWSCRIPT}
             fi
-            echo "EOF" >> $NEWSCRIPT
-            echo "}" >> $NEWSCRIPT
+            echo "EOF" >> ${NEWSCRIPT}
+            echo "}" >> ${NEWSCRIPT}
         fi
-        if [ "x$INC_ABORT" == "xy" ]; then
-            echo "function abort(){" >> $NEWSCRIPT
-            echo '    echo "Error: $@" >&2' >> $NEWSCRIPT
-            [ "x$INC_PRINT_USAGE" == "xy" ] && echo "    print_usage" >> $NEWSCRIPT
-            echo "    exit -1" >> $NEWSCRIPT
-            echo "}" >> $NEWSCRIPT
+        if [ "${INC_ABORT}" == "y" ]; then
+            echo "function abort(){" >> ${NEWSCRIPT}
+            echo '    echo "Error: $@" >&2' >> ${NEWSCRIPT}
+            [ "${INC_PRINT_USAGE}" == "y" ] && echo "    print_usage" >> ${NEWSCRIPT}
+            echo "    exit -1" >> ${NEWSCRIPT}
+            echo "}" >> ${NEWSCRIPT}
         fi
-        if [ "x$INC_PRINT_USAGE" == "xy" ]; then
-            cat >> $NEWSCRIPT << "OEOF"
-if [ "x$1" == "x-h" ] || [ "x$1" == "x--help" ];then
+            if [ "${INC_PRINT_USAGE}" == "y" ]; then
+                cat >> ${NEWSCRIPT} << "OEOF"
+if [ "${1}" == "-h" ] || [ "${1}" == "--help" ];then
     print_usage
     exit 0
 fi
 OEOF
         fi
-        if [ "x$INC_OPT_PARSER" == "xy" ]; then
-            cat >> $NEWSCRIPT << "OEOF"
+        if [ "${INC_OPT_PARSER}" == "y" ]; then
+            cat >> "${NEWSCRIPT}" << "OEOF"
 ARGS=()
 while [ $# -gt 0 ];do
-    if [ "x$NO_OPTS" == "xy" ] && [[ "$1" =~ \-.* ]];then
-        ARGS+="$1 "
+    if [ "${NO_OPTS}" == "y" ] && [[ "${1}" =~ \-.* ]];then
+        ARGS+="${1} "
     else
-        case $1 in 
+        case ${1} in
             '--')
                 NO_OPTS="y"
                 ;;
@@ -134,7 +142,7 @@ while [ $# -gt 0 ];do
                 exit 0
                 ;;
             *)
-                ARGS+=("$1")
+                ARGS+=("${1}")
                 ;;
         esac
     fi
@@ -142,8 +150,8 @@ while [ $# -gt 0 ];do
 done
 OEOF
         fi
-        chmod +x $NEWSCRIPT
+        chmod +x ${NEWSCRIPT}
     fi
-    ${EDITOR:-vi} $NEWSCRIPT 
+    ${EDITOR:-vi} ${NEWSCRIPT}
     shift
 done
