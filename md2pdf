@@ -1,0 +1,90 @@
+#!/bin/bash
+set -euo pipefail
+BASEDIR=$(dirname $0)
+source $BASEDIR/inc_dependencies.sh
+source $BASEDIR/inc_msg.sh
+
+set_dependencies pandoc wkhtmltopdf
+
+function print_usage(){
+    cat << EOF
+Usage: $(basename $0) [OPTIONS] input.md [output.pdf]
+
+Options:
+    --:
+        Stop processing any further options
+
+    -c,--css path-to-css:
+        Use specified css file
+
+    -d,--debug:
+        Run script in debugging mode
+
+    -f,--force:
+        Overwrite outfile even if it exists already
+
+    -h,--help:
+        Print this help
+EOF
+    print_dependencies
+}
+if [ "${1}" == "-h" ] || [ "${1}" == "--help" ];then
+    print_usage
+    exit 0
+fi
+check_dependencies
+args=()
+no_opts="n"
+force="n"
+css_arg=""
+while [ $# -gt 0 ];do
+    if [ "${no_opts}" == "y" ] && [[ "${1}" =~ \-.* ]];then
+        args+="${1} "
+    else
+        case "${1}" in
+            '--')
+                no_opts="y"
+                ;;
+            '-c'|'--css')
+                shift
+                css_arg=" --css=\"${1}\" "
+                ;;
+            '-d'|'--debug')
+                set -xe
+                ;;
+            '-f'|'--force')
+                force="y"
+                ;;
+            '-h'|'--help')
+                print_usage
+                exit 0
+                ;;
+            *)
+                args+=("${1}")
+                ;;
+        esac
+    fi
+    shift
+done
+
+[ ${#args[@]} -lt 1 ] && abort "Argument input.md missing!"
+markdown_file="${args[0]}"
+file_base_name="$(echo "${markdown_file}" | sed -e s/.md$//g)"
+if [ ${#args[@]} -ge 2 ]; then
+    pdf_output="${args[1]}"
+else
+    pdf_output="${file_base_name}.pdf"
+fi
+
+
+[ -e "$pdf_output" ] && [ "$force" != "y" ] && abort "File ${pdf_output} exists and would be overwritten."
+
+pandoc --from=gfm  --to=pdf -o "${pdf_output}" -t html $css_arg \
+    -V margin-left="2cm" \
+    -V margin-right="2cm" \
+    -V margin-top="1cm" \
+    -V margin-bottom="1cm" \
+    "$markdown_file"
+
+
+
