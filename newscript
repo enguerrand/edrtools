@@ -112,7 +112,7 @@ OEOF
             echo "function abort(){" >> ${NEWSCRIPT}
             echo '    echo "Error: $@" >&2' >> ${NEWSCRIPT}
             [ "${INC_PRINT_USAGE}" == "y" ] && echo "    print_usage" >> ${NEWSCRIPT}
-            echo "    exit -1" >> ${NEWSCRIPT}
+            echo "    exit 1" >> ${NEWSCRIPT}
             echo "}" >> ${NEWSCRIPT}
         fi
             if [ "${INC_PRINT_USAGE}" == "y" ]; then
