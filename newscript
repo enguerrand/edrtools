@@ -125,14 +125,15 @@ OEOF
         fi
         if [ "${INC_OPT_PARSER}" == "y" ]; then
             cat >> "${NEWSCRIPT}" << "OEOF"
-ARGS=()
+args=()
+no_opts="n"
 while [ $# -gt 0 ];do
-    if [ "${NO_OPTS}" == "y" ] && [[ "${1}" =~ \-.* ]];then
-        ARGS+="${1} "
+    if [ "${no_opts}" == "y" ] && [[ "${1}" =~ \-.* ]];then
+        args+="${1} "
     else
         case ${1} in
             '--')
-                NO_OPTS="y"
+                no_opts="y"
                 ;;
             '-d'|'--debug')
                 set -xe
@@ -142,7 +143,7 @@ while [ $# -gt 0 ];do
                 exit 0
                 ;;
             *)
-                ARGS+=("${1}")
+                args+=("${1}")
                 ;;
         esac
     fi
