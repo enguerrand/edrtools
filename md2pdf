@@ -15,7 +15,9 @@ Options:
         Stop processing any further options
 
     -c,--css path-to-css:
-        Use specified css file
+        Use specified css file instead of the default css 
+        (which is the file specified in the env var MD2HTML_CSS_FILE if specifed
+        or the file md2html.css in the root of this repo otherwise)
 
     -d,--debug:
         Run script in debugging mode
@@ -36,7 +38,8 @@ check_dependencies
 args=()
 no_opts="n"
 force="n"
-css_arg=""
+css_file=${MD2PDF_CSS_FILE:-"$BASEDIR/md2html.css"}
+                css_arg=" --css=\"${1}\" "
 while [ $# -gt 0 ];do
     if [ "${no_opts}" == "y" ] && [[ "${1}" =~ \-.* ]];then
         args+="${1} "
@@ -47,7 +50,7 @@ while [ $# -gt 0 ];do
                 ;;
             '-c'|'--css')
                 shift
-                css_arg=" --css=\"${1}\" "
+                css_file="${1}"
                 ;;
             '-d'|'--debug')
                 set -xe
@@ -79,7 +82,8 @@ fi
 
 [ -e "$pdf_output" ] && [ "$force" != "y" ] && abort "File ${pdf_output} exists and would be overwritten."
 
-pandoc --from=gfm  --to=pdf -o "${pdf_output}" -t html $css_arg \
+pandoc --from=gfm  --to=pdf -o "${pdf_output}" -t html \
+    --css="$css_file" \
     -V margin-left="2cm" \
     -V margin-right="2cm" \
     -V margin-top="1cm" \
