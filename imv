@@ -64,6 +64,10 @@ src="${args[0]}"
 dst="${args[1]}"
 cmd="mv -v"
 [ "$(basename "$0")" == "icp" ] && cmd="cp -vr"
+default_ifs=$IFS
+IFS=$'\n';
 for f in $(ls -1rv "${src}" | fzf -m); do
+    IFS=$default_ifs
     ${cmd} "${src}/${f}" "${dst}/"
+    IFS=$'\n';
 done
