@@ -18,4 +18,4 @@ qpdf --help >/dev/null 2>&1  || abort "Please install qpdf to be able to use thi
 PDF=$1
 [ -f "$PDF" ] || abort "$PDF: File not found!"
 read -p "Please enter password for file $PDF:" PASSWORD
-qpdf --password=$PASSWORD --decrypt $PDF ${PDF%.*}"_decrypted.pdf"
+qpdf --password="$PASSWORD" --decrypt $PDF ${PDF%.*}"_decrypted.pdf"
